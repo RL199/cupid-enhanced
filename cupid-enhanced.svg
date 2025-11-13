@@ -49,7 +49,7 @@
   <!-- Slight blurred darker duplicate to create depth under the main word -->
   <text x="60" y="190" font-family="Poppins, Nunito, Avenir, 'Helvetica Neue', Arial, sans-serif"
         font-weight="800" font-size="170" letter-spacing="-6" fill="url(#gDark)"
-        transform="translate(6,6) rotate(-1)" opacity="0.85" filter="url(#fGlow)">
+        transform="translate(5,5)" opacity="0.85" filter="url(#fGlow)">
     Cupid Enhanced
   </text>
 
