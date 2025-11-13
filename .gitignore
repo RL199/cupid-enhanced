@@ -1,0 +1,5 @@
+# IDE folders
+.vscode/
+.idea/
+.hintrc
+svg-assets/
