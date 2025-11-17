@@ -1,0 +1,105 @@
+name: Release on Merge to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get version from manifest
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.get_version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract changelog for current version
+        if: steps.check_tag.outputs.exists == 'false'
+        id: get_changelog
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+
+          # Extract changelog content for the specific version
+          CHANGELOG_CONTENT=$(awk "
+            /^## \[$VERSION\]/ {
+              found=1;
+              next
+            }
+            found && /^## \[/ && !/^## \[$VERSION\]/ {
+              exit
+            }
+            found && NF > 0 {
+              print
+            }
+          " CHANGELOG.md)
+
+          # If no specific version found, use Unreleased section
+          if [ -z "$CHANGELOG_CONTENT" ]; then
+            CHANGELOG_CONTENT=$(awk "
+              /^## \[Unreleased\]/ {
+                found=1;
+                next
+              }
+              found && /^## \[/ {
+                exit
+              }
+              found && NF > 0 {
+                print
+              }
+            " CHANGELOG.md)
+          fi
+
+          # If still empty, use a default message
+          if [ -z "$CHANGELOG_CONTENT" ]; then
+            CHANGELOG_CONTENT="No changelog available for this version."
+          fi
+
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP file
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          mkdir -p build
+          zip -r build/Cupid.Enhanced.zip . -x "*.git*" "*.github*" "*.idea*" "*.vscode*" "Screenshots/*" "build/*" "*.DS_Store" "*.md" "svg-assets/*"
+
+      - name: Create Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Cupid Enhanced v${{ steps.get_version.outputs.version }}
+          body: |
+            ## What's Changed
+
+            ${{ steps.get_changelog.outputs.changelog }}
+
+            ## Installation
+            **Manual Installation**
+            1. Download the ZIP file
+            2. Extract it to a folder
+            3. Open Chrome and go to `chrome://extensions/`
+            4. Enable "Developer mode"
+            5. Click "Load unpacked" and select the extracted folder
+          files: build/Cupid.Enhanced.zip
+          draft: false
