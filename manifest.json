@@ -22,10 +22,12 @@
                 "https://www.okcupid.com/*"
             ],
             "js": [
+                "scripts/api-interceptor.js",
                 "scripts/okcupid-content.js"
             ],
             "run_at": "document_start",
-            "all_frames": true
+            "all_frames": true,
+            "world": "MAIN"
         }
     ]
 }
