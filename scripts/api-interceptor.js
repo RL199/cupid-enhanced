@@ -4,6 +4,22 @@
 
     console.log('###API interceptor injected###');
 
+    const SETTINGS_KEY = 'cupidEnhancedSettings';
+    let settings = {
+        unblurImages: true,
+        likesCount: true
+    };
+
+    // Listen for settings from isolated world
+    window.addEventListener('message', (event) => {
+        if (event.source === window && event.data.type === 'SETTINGS_TO_MAIN') {
+            settings = event.data.settings;
+        }
+    });
+
+    // Request settings immediately
+    window.postMessage({ type: 'REQUEST_SETTINGS' }, '*');
+
     const originalText = Response.prototype.text;
 
     Response.prototype.text = async function () {
@@ -16,7 +32,7 @@
             const data = JSON.parse(text);
 
             // Unblur profile images in "who liked you" data
-            if (data?.data?.me?.likes?.data) {
+            if (data?.data?.me?.likes?.data && settings.unblurImages) {
                 data.data.me.likes.data.forEach(like => {
                     if (like.primaryImage) {
                         like.primaryImageBlurred = like.primaryImage;
@@ -26,7 +42,7 @@
             }
 
             // Send likes count to isolated world for storage
-            if (data?.data?.me?.notificationCounts?.likesIncoming) {
+            if (data?.data?.me?.notificationCounts?.likesIncoming && settings.likesCount) {
                 window.postMessage({
                     type: 'SAVE_LIKES_COUNT',
                     count: data.data.me.notificationCounts.likesIncoming

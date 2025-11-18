@@ -2,6 +2,18 @@
 
 console.log('###Cupid content script loaded###');
 
+const SETTINGS_KEY = 'cupidEnhancedSettings';
+const DEFAULT_SETTINGS = {
+    unblurImages: true,
+    likesCount: true,
+    enhanceDiscoverPage: true,
+    enhanceInterestedPhotos: true,
+    blockPremiumAds: true
+};
+
+let currentSettings = { ...DEFAULT_SETTINGS };
+let observers = {};
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -10,27 +22,82 @@ if (document.readyState === 'loading') {
 }
 
 // Main initialization
-function init() {
+async function init() {
+    await loadSettings();
     listenForLikesCount();
+    listenForSettingsUpdates();
     setupObservers();
     updateLikesIncomingCount();
 }
 
-// Setup all mutation observers
+// Load settings from storage
+async function loadSettings() {
+    const result = await chrome.storage.local.get([SETTINGS_KEY]);
+    currentSettings = { ...DEFAULT_SETTINGS, ...result[SETTINGS_KEY] };
+
+    // Send settings to MAIN world for API interceptor
+    sendSettingsToMainWorld();
+}
+
+// Send settings to MAIN world
+function sendSettingsToMainWorld() {
+    window.postMessage({
+        type: 'SETTINGS_TO_MAIN',
+        settings: currentSettings
+    }, '*');
+}
+
+// Listen for settings updates from popup
+function listenForSettingsUpdates() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'SETTINGS_UPDATED') {
+            currentSettings = message.settings;
+            sendSettingsToMainWorld();
+            applySettings();
+        }
+    });
+
+    // Listen for settings requests from MAIN world
+    window.addEventListener('message', (event) => {
+        if (event.source === window && event.data.type === 'REQUEST_SETTINGS') {
+            sendSettingsToMainWorld();
+        }
+    });
+}
+
+// Apply current settings by starting/stopping observers
+function applySettings() {
+    // Clean up existing observers
+    Object.values(observers).forEach(observer => observer?.disconnect());
+    observers = {};
+
+    // Reapply based on current settings
+    setupObservers();
+}
+
+// Setup all mutation observers based on settings
 function setupObservers() {
-    enhanceInterestedUsersPhotos();
-    enhanceDiscoverPage();
-    blockPremiumAds();
+    if (currentSettings.enhanceInterestedPhotos) {
+        observers.interestedPhotos = enhanceInterestedUsersPhotos();
+    }
+    if (currentSettings.enhanceDiscoverPage) {
+        observers.discoverPage = enhanceDiscoverPage();
+    }
+    if (currentSettings.blockPremiumAds) {
+        observers.premiumAds = blockPremiumAds();
+    }
 }
 
 // Likes count management
 async function updateLikesIncomingCount() {
+    if (!currentSettings.likesCount) return;
+
     const { likesIncomingCount = 0 } = await chrome.storage.local.get(['likesIncomingCount']);
     updateLikesUI(likesIncomingCount);
 }
 
 function updateLikesUI(count) {
-    if (!count || count <= 0) return;
+    if (!currentSettings.likesCount || !count || count <= 0) return;
 
     const likesCountElement = document.querySelector('.count');
     if (likesCountElement) {
@@ -52,9 +119,11 @@ function listenForLikesCount() {
         if (event.source !== window || event.data.type !== 'SAVE_LIKES_COUNT') return;
 
         const { count } = event.data;
-
         await chrome.storage.local.set({ likesIncomingCount: count });
-        updateLikesUI(count);
+
+        if (currentSettings.likesCount) {
+            updateLikesUI(count);
+        }
     });
 }
 
@@ -66,6 +135,8 @@ function enhanceDiscoverPage() {
     ];
 
     const observer = new MutationObserver(() => {
+        if (!currentSettings.enhanceDiscoverPage) return;
+
         enhancements.forEach(({ selector, styles }) => {
             document.querySelectorAll(selector).forEach(element => {
                 Object.assign(element.style, styles);
@@ -74,10 +145,13 @@ function enhanceDiscoverPage() {
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
+    return observer;
 }
 
 function enhanceInterestedUsersPhotos() {
     const observer = new MutationObserver(() => {
+        if (!currentSettings.enhanceInterestedPhotos) return;
+
         // Remove max height restriction from photos
         document.querySelectorAll('.CNr1suk9pEF3nlOENwde.eJG7lHzUvRC0ejcywkgI').forEach(photo => {
             photo.style.maxHeight = 'none';
@@ -90,6 +164,7 @@ function enhanceInterestedUsersPhotos() {
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
+    return observer;
 }
 
 function blockPremiumAds() {
@@ -105,6 +180,8 @@ function blockPremiumAds() {
     ];
 
     const observer = new MutationObserver(() => {
+        if (!currentSettings.blockPremiumAds) return;
+
         selectorsToHide.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
                 if (element.style.display !== 'none') {
@@ -115,4 +192,5 @@ function blockPremiumAds() {
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
+    return observer;
 }
