@@ -2,138 +2,117 @@
 
 console.log('###Cupid content script loaded###');
 
+// Initialize when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeContentScript);
+    document.addEventListener('DOMContentLoaded', init);
 } else {
-    initializeContentScript();
+    init();
 }
 
-function initializeContentScript() {
+// Main initialization
+function init() {
+    listenForLikesCount();
+    setupObservers();
+    updateLikesIncomingCount();
+}
+
+// Setup all mutation observers
+function setupObservers() {
     enhanceInterestedUsersPhotos();
     enhanceDiscoverPage();
     blockPremiumAds();
 }
 
-function enhanceDiscoverPage() {
-    const selectorsToEnhance = [
-        { selector: ".desktop-dt-content", name: "discover photos" },
-        { selector: ".desktop-dt-right", name: "discover right side content" },
-        { selector: ".desktop-dt-left", name: "discover left side content" },
-        { selector: "#profile-questions-entry", name: "profile section" },
-        { selector: ".sliding-pagination-inner-content", name: "pagination section" }
-    ];
+// Likes count management
+async function updateLikesIncomingCount() {
+    const { likesIncomingCount = 0 } = await chrome.storage.local.get(['likesIncomingCount']);
+    updateLikesUI(likesIncomingCount);
+}
 
-    const observer = new MutationObserver((mutations, obs) => {
+function updateLikesUI(count) {
+    if (!count || count <= 0) return;
 
-        const paginationSection = document.querySelectorAll(selectorsToEnhance[4].selector);
-        if (paginationSection.length > 0) {
-            paginationSection.forEach(section => {
-                section.style.width = 'fit-content';
-            });
-            console.log(`###Enhanced ${selectorsToEnhance[4].name}###`);
+    const likesCountElement = document.querySelector('.count');
+    if (likesCountElement) {
+        likesCountElement.textContent = count;
+        replaceInterestWithLikes();
+    }
+}
+
+function replaceInterestWithLikes() {
+    document.querySelectorAll('.navbar-link-text').forEach(element => {
+        if (element.textContent.includes('Interest')) {
+            element.textContent = 'Likes';
         }
-
-        const profileSections = document.querySelectorAll(selectorsToEnhance[3].selector);
-        if (profileSections.length > 0) {
-            profileSections.forEach(section => {
-                // section.style.minWidth = '400px';
-            });
-            console.log(`###Enhanced ${selectorsToEnhance[3].name}###`);
-        }
-
-        const leftSideContent = document.querySelectorAll(selectorsToEnhance[2].selector);
-        if (leftSideContent.length > 0) {
-            leftSideContent.forEach(content => {
-                // content.style.display = 'flex';
-                // content.style.width = 'auto';
-            });
-            console.log(`###Enhanced ${selectorsToEnhance[2].name}###`);
-        }
-
-        const rightSideContent = document.querySelectorAll(selectorsToEnhance[1].selector);
-        if (rightSideContent.length > 0) {
-            rightSideContent.forEach(content => {
-                content.style.marginLeft = '10px';
-                // content.style.width = 'auto';
-            });
-            console.log(`###Enhanced ${selectorsToEnhance[1].name}###`);
-        }
-
-        const discoverPhotos = document.querySelectorAll(selectorsToEnhance[0].selector);
-        if (discoverPhotos.length > 0) {
-            discoverPhotos.forEach(element => {
-                element.style.maxWidth = '90%';
-                element.style.justifyContent = 'center';
-            });
-            console.log(`###Enhanced ${selectorsToEnhance[0].name}###`);
-        }
-    });
-
-    // Start observing
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
     });
 }
 
-function enhanceInterestedUsersPhotos() {
-    const selectorsToEnhance = [
-        { selector: ".CNr1suk9pEF3nlOENwde.eJG7lHzUvRC0ejcywkgI", name: "interested users photos" },
-        { selector: ".yfl1DI6BaFRYLQuLCe55", name: "foggy overlay" }
+function listenForLikesCount() {
+    window.addEventListener('message', async (event) => {
+        if (event.source !== window || event.data.type !== 'SAVE_LIKES_COUNT') return;
+
+        const { count } = event.data;
+
+        await chrome.storage.local.set({ likesIncomingCount: count });
+        updateLikesUI(count);
+    });
+}
+
+function enhanceDiscoverPage() {
+    const enhancements = [
+        { selector: '.desktop-dt-content', styles: { maxWidth: '90%', justifyContent: 'center' } },
+        { selector: '.desktop-dt-right', styles: { marginLeft: '10px' } },
+        { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content' } }
     ];
 
-    const observer = new MutationObserver((mutations, obs) => {
-
-        const interestedUsersPhotos = document.querySelectorAll(selectorsToEnhance[0].selector);
-        if (interestedUsersPhotos.length > 0) {
-            // remove max height restriction from each element
-            interestedUsersPhotos.forEach(photo => {
-                photo.style.maxHeight = 'none';
+    const observer = new MutationObserver(() => {
+        enhancements.forEach(({ selector, styles }) => {
+            document.querySelectorAll(selector).forEach(element => {
+                Object.assign(element.style, styles);
             });
-            console.log(`###Removed max-height restriction from ${selectorsToEnhance[0].name}###`);
-        }
-
-        const foggyOverlay = document.querySelector(selectorsToEnhance[1].selector);
-        if (foggyOverlay) {
-            foggyOverlay.style.display = 'none';
-            console.log(`###Removed ${selectorsToEnhance[1].name}###`);
-        }
+        });
     });
 
-    // Start observing
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
+function enhanceInterestedUsersPhotos() {
+    const observer = new MutationObserver(() => {
+        // Remove max height restriction from photos
+        document.querySelectorAll('.CNr1suk9pEF3nlOENwde.eJG7lHzUvRC0ejcywkgI').forEach(photo => {
+            photo.style.maxHeight = 'none';
+        });
+
+        // Hide foggy overlay
+        document.querySelectorAll('.yfl1DI6BaFRYLQuLCe55').forEach(overlay => {
+            overlay.style.display = 'none';
+        });
     });
+
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
 function blockPremiumAds() {
     const selectorsToHide = [
-        { selector: ".premium-promo-link-anchor", name: "see who liked you tag" },
-        { selector: ".dt-tags-like-instructions", name: "like instructions tag" },
-        { selector: ".RCnxRpTKlcKwgM1UlXlj.yvmovGzlmTO5T6yg_ckm", name: "premium ad" },
-        { selector: ".navbar-boost", name: "boost button" },
-        { selector: ".LHLUIR30CVKQDOC2rJps", name: "download app banner" },
-        { selector: ".IUE4LujuCAt32rrowE9e", name: "remove ads button" },
-        { selector: ".sIZ02EKchd4I0KnGgDgF.t1LDnewkFIu_5Qelhi_u", name: "see who is interested button" },
-        { selector: ".MgfNUNvEHRmbdo7IccK9.sidebar-with-card-view", name: "remove ads button on who liked you page" }
+        '.premium-promo-link-anchor',
+        '.dt-tags-like-instructions',
+        '.RCnxRpTKlcKwgM1UlXlj.yvmovGzlmTO5T6yg_ckm',
+        '.navbar-boost',
+        '.LHLUIR30CVKQDOC2rJps',
+        '.IUE4LujuCAt32rrowE9e',
+        '.sIZ02EKchd4I0KnGgDgF.t1LDnewkFIu_5Qelhi_u',
+        '.MgfNUNvEHRmbdo7IccK9.sidebar-with-card-view'
     ];
 
-    const observer = new MutationObserver((mutations, obs) => {
-
-        selectorsToHide.forEach(({ selector, name }) => {
-            const element = document.querySelector(selector);
-            if (element && element.style.display !== 'none') {
-                // Hide instead of remove to avoid React errors
-                element.style.display = 'none';
-                console.log(`###Hidden ${name}###`);
-            }
+    const observer = new MutationObserver(() => {
+        selectorsToHide.forEach(selector => {
+            document.querySelectorAll(selector).forEach(element => {
+                if (element.style.display !== 'none') {
+                    element.style.display = 'none';
+                }
+            });
         });
     });
 
-    // Start observing
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+    observer.observe(document.body, { childList: true, subtree: true });
 }

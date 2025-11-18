@@ -1,40 +1,40 @@
-// This script intercepts and modifies API responses
+// API Response Interceptor - Runs in MAIN world to modify responses before page sees them
 (function () {
     'use strict';
 
     console.log('###API interceptor injected###');
 
-    // Override Response.prototype.text to intercept and modify API responses
     const originalText = Response.prototype.text;
 
     Response.prototype.text = async function () {
         const text = await originalText.call(this);
+        const { url } = this;
 
-        // Only process GraphQL responses
-        if (!this.url.includes('graphql')) {
-            return text;
-        }
+        if (!url.includes('graphql')) return text;
 
         try {
             const data = JSON.parse(text);
 
-            // Handle "who liked you" data
+            // Unblur profile images in "who liked you" data
             if (data?.data?.me?.likes?.data) {
-                console.log('###Intercepted likes data - unblurring images###');
-
-                // Replace blurred images with real ones
-                data.data.me.likes.data.forEach((like) => {
+                data.data.me.likes.data.forEach(like => {
                     if (like.primaryImage) {
                         like.primaryImageBlurred = like.primaryImage;
                     }
                 });
-
                 return JSON.stringify(data);
             }
 
+            // Send likes count to isolated world for storage
+            if (data?.data?.me?.notificationCounts?.likesIncoming) {
+                window.postMessage({
+                    type: 'SAVE_LIKES_COUNT',
+                    count: data.data.me.notificationCounts.likesIncoming
+                }, '*');
+            }
+
             return text;
-        } catch (e) {
-            // If parsing fails, return original text
+        } catch {
             return text;
         }
     };
