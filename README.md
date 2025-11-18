@@ -30,8 +30,6 @@
     - [Future Considerations](#future-considerations)
   - [🔐 Privacy and Security](#-privacy-and-security)
     - [Permissions](#permissions)
-  - [👥 Contributing](#-contributing)
-  - [📝 License](#-license)
   - [❓ FAQs](#-faqs)
     - [Can I use this extension on other browsers?](#can-i-use-this-extension-on-other-browsers)
     - [Is this extension safe to use?](#is-this-extension-safe-to-use)
@@ -97,9 +95,9 @@ After installation, click the extension icon in your Chrome toolbar to open the 
 ### Popup Page
 
 The extension features a beautiful dark-themed popup with gradient colors matching the logo, providing easy access to all settings with toggle switches for each feature.
-
-![Popup Settings](Screenshots/popup_page.png)
-
+<div align="center">
+  <img src="Screenshots/popup_page.png" alt="Cupid Enhanced Popup Screenshot">
+</div>
 
 ## 🛠️ Technical Details
 
@@ -134,7 +132,6 @@ The extension features a beautiful dark-themed popup with gradient colors matchi
 
 ### Future Considerations
 
-- Export/Import settings
 - Statistics dashboard
 - Advanced filtering options
 - More customization controls
@@ -157,15 +154,6 @@ The extension requires the following permissions:
 - **`storage`** - To save your settings preferences locally
 - **`tabs`** - To communicate settings updates to active OkCupid tabs
 - **Host Permission (`https://www.okcupid.com/*`)** - To run content scripts on OkCupid pages
-
-
-## 👥 Contributing
-
-Feel free to open issues and submit pull requests. Please ensure your code follows the existing style and includes appropriate documentation.
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## ❓ FAQs
 
