@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Horizontal scroll support for Discover page using mouse wheel
+- Centered layout for Enhance Discover Page feature
 
 ## [0.9.0] - 2025-11-18
 
