@@ -155,7 +155,8 @@ function enhanceDiscoverPage() {
     const enhancements = [
         { selector: '.desktop-dt-content', styles: { maxWidth: '90%', justifyContent: 'center' } },
         { selector: '.desktop-dt-right', styles: { marginLeft: '10px' } },
-        { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content' } }
+        { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content' , justifyContent: 'center' } },
+        { selector: '.sliding-pagination', styles: { display: 'inline-flex' , justifyContent: 'center'} }
     ];
 
     const observer = new MutationObserver(() => {
