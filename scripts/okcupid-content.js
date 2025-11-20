@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
     likesCount: true,
     enhanceDiscoverPage: true,
     enhanceInterestedPhotos: true,
-    blockPremiumAds: true
+    blockPremiumAds: true,
+    horizontalScroll: true
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
@@ -28,6 +29,26 @@ async function init() {
     listenForSettingsUpdates();
     setupObservers();
     updateLikesIncomingCount();
+}
+
+// Add horizontal scroll support for discover page
+function addScrollLeftRightClicks() {
+    const scrollHandler = (event) => {
+        if (!currentSettings.horizontalScroll) return;
+        if (event.deltaY != 0) return; // only horizontal scroll
+
+        const leftButton = document.querySelector('.sliding-pagination-button.prev');
+        const rightButton = document.querySelector('.sliding-pagination-button.next');
+
+        if (event.deltaX < 0) {
+            leftButton?.click();
+        } else {
+            rightButton?.click();
+        }
+    };
+
+    window.addEventListener('wheel', scrollHandler);
+    observers.horizontalScroll = { disconnect: () => window.removeEventListener('wheel', scrollHandler) };
 }
 
 // Load settings from storage
@@ -85,6 +106,9 @@ function setupObservers() {
     }
     if (currentSettings.blockPremiumAds) {
         observers.premiumAds = blockPremiumAds();
+    }
+    if (currentSettings.horizontalScroll) {
+        addScrollLeftRightClicks();
     }
 }
 

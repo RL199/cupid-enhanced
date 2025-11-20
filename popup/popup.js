@@ -5,7 +5,8 @@ const DEFAULT_SETTINGS = {
     likesCount: true,
     enhanceDiscoverPage: true,
     enhanceInterestedPhotos: true,
-    blockPremiumAds: true
+    blockPremiumAds: true,
+    horizontalScroll: true
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
