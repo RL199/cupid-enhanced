@@ -201,7 +201,9 @@ function blockPremiumAds() {
         '.LHLUIR30CVKQDOC2rJps',
         '.IUE4LujuCAt32rrowE9e',
         '.sIZ02EKchd4I0KnGgDgF.t1LDnewkFIu_5Qelhi_u',
-        '.MgfNUNvEHRmbdo7IccK9.sidebar-with-card-view'
+        '.MgfNUNvEHRmbdo7IccK9.sidebar-with-card-view',
+        '.okmasthead.incognito-masthead',
+        '.J8RXzumIQVAo3qnCBqHr'
     ];
 
     const observer = new MutationObserver(() => {
