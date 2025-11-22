@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Centered layout for Enhance Discover Page feature
 - Renamed titles in popup settings for clarity
+- Updated location of extension assets
 
 ## [0.9.0] - 2025-11-18
 

@@ -4,10 +4,10 @@
     "version": "1.0.0",
     "description": "Enhances the OkCupid platform for better usability and features.",
     "icons": {
-        "16": "extension-icons/icon-16.png",
-        "32": "extension-icons/icon-32.png",
-        "48": "extension-icons/icon-48.png",
-        "128": "extension-icons/icon-128.png"
+        "16": "assets/icons/icon-16.png",
+        "32": "assets/icons/icon-32.png",
+        "48": "assets/icons/icon-48.png",
+        "128": "assets/icons/icon-128.png"
     },
     "permissions": [
         "storage",
@@ -16,10 +16,10 @@
     "action": {
         "default_popup": "popup/popup.html",
         "default_icon": {
-            "16": "extension-icons/icon-16.png",
-            "32": "extension-icons/icon-32.png",
-            "48": "extension-icons/icon-48.png",
-            "128": "extension-icons/icon-128.png"
+            "16": "assets/icons/icon-16.png",
+            "32": "assets/icons/icon-32.png",
+            "48": "assets/icons/icon-48.png",
+            "128": "assets/icons/icon-128.png"
         },
         "default_title": "Cupid Enhanced Settings"
     },
