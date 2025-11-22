@@ -6,7 +6,8 @@ const DEFAULT_SETTINGS = {
     enhanceDiscoverPage: true,
     enhanceInterestedPhotos: true,
     blockPremiumAds: true,
-    horizontalScroll: true
+    horizontalScroll: true,
+    darkMode: true
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };

@@ -60,6 +60,7 @@ body {
     background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
     padding: 10px 12px;
     padding-bottom: 0;
+    padding-top: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -211,7 +212,7 @@ body {
 }
 
 .footer {
-    padding: 10px;
+    padding: 8px;
     background: rgba(var(--bg-gradient-start-rgb), 0.5);
     border-top: 1px solid rgba(var(--primary-purple-rgb), 0.3);
     display: flex;

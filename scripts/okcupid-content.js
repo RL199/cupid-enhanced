@@ -9,7 +9,8 @@ const DEFAULT_SETTINGS = {
     enhanceDiscoverPage: true,
     enhanceInterestedPhotos: true,
     blockPremiumAds: true,
-    horizontalScroll: true
+    horizontalScroll: true,
+    darkMode: true
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
@@ -30,6 +31,86 @@ async function init() {
     listenForSettingsUpdates();
     setupObservers();
     updateLikesIncomingCount();
+    if (currentSettings.darkMode) {
+        enableDarkMode();
+    }
+}
+
+// Enable dark mode on the site
+function enableDarkMode() {
+    // Inject dark mode styles
+    if (!document.getElementById('cupid-dark-mode-styles')) {
+        const style = document.createElement('style');
+        style.id = 'cupid-dark-mode-styles';
+        style.textContent = `
+            /* Main backgrounds */
+            body, html {
+                background-color: #1a1a1a !important;
+                color: #fff !important;
+            }
+
+            /* Card backgrounds */
+            .desktop-dt-wrapper,
+            .dt-section,
+            .dt-section-content,
+            .card-content-header,
+            .profile-questions-entry,
+            .lMKCh7F9nqebnDd56PN0,
+            .profilesection {
+                background-color: #1a1a1a !important;
+                color: #fff !important;
+            }
+
+            /* Text colors */
+            .card-content-header__text,
+            .card-content-header__location,
+            .matchprofile-details-text,
+            .dt-essay-text,
+            .profilesection-title {
+                color: #fff !important;
+            }
+
+            .RdZlPEHL94PdRZqJm_GF{
+            line-height: normal !important;
+            }
+
+            .FhQz9_b2kDEEGYsYah5k {
+            color: #3639ffff !important;
+            }
+
+            .dt-section-title,
+            .profilesection-title {
+                color: #1a1a1a !important;
+                background-color: #fff !important;
+            }
+
+            /* Borders and dividers */
+            .dt-section {
+                border-color: #333 !important;
+            }
+
+            /* Icons - keep them visible */
+            .matchprofile-details-icon path,
+            svg path[fill="#1A1A1A"] {
+                fill: #fff !important;
+            }
+
+            /* Button text */
+            .dt-action-buttons-button-text,
+            .superlike-button-label {
+                color: #1a1a1a !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// Disable dark mode
+function disableDarkMode() {
+    const styleElement = document.getElementById('cupid-dark-mode-styles');
+    if (styleElement) {
+        styleElement.remove();
+    }
 }
 
 function listenForLikesRemaining() {
@@ -48,7 +129,7 @@ function listenForLikesRemaining() {
             // convert epoch to readable date
             const readableTime = new Date(time * 1000).toLocaleString();
             localStorage.setItem('likes_reset_time', readableTime);
-            
+
             //if the Cupid Enhanced section exists, update the displayed value
             const likesResetTimeElement = document.getElementById('likes-reset-time');
             if (likesResetTimeElement) {
@@ -119,6 +200,13 @@ function applySettings() {
     Object.values(observers).forEach(observer => observer?.disconnect());
     observers = {};
 
+    // Handle dark mode
+    if (currentSettings.darkMode) {
+        enableDarkMode();
+    } else {
+        disableDarkMode();
+    }
+
     // Reapply based on current settings
     setupObservers();
 }
@@ -178,8 +266,8 @@ function enhanceDiscoverPage() {
     const enhancements = [
         { selector: '.desktop-dt-content', styles: { maxWidth: '90%', justifyContent: 'center' } },
         { selector: '.desktop-dt-right', styles: { marginLeft: '10px' } },
-        { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content' , justifyContent: 'center' } },
-        { selector: '.sliding-pagination', styles: { display: 'inline-flex' , justifyContent: 'center'} }
+        { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content', justifyContent: 'center' } },
+        { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
     ];
 
     const observer = new MutationObserver(() => {
