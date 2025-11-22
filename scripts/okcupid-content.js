@@ -167,10 +167,47 @@ function enhanceDiscoverPage() {
                 Object.assign(element.style, styles);
             });
         });
+
+        // Add Cupid Enhanced info section
+        addCupidEnhancedSection();
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
     return observer;
+}
+
+function addCupidEnhancedSection() {
+    const rightPanel = document.querySelector('.desktop-dt-right');
+    if (!rightPanel) return;
+
+    if (document.querySelector('.cupid-enhanced-section')) {
+        // Section exists, update photo dates if needed
+        return;
+    }
+
+    // Create the Cupid Enhanced section
+    const section = document.createElement('div');
+    section.className = 'dt-section cupid-enhanced-section';
+
+    const title = document.createElement('h3');
+    title.className = 'dt-section-title';
+    title.textContent = 'Cupid Enhanced';
+
+    const content = document.createElement('div');
+    content.className = 'dt-section-content';
+    content.innerHTML = `
+        <div class="matchprofile-details-text" id="newest-photo-date">Newest Photo Upload: Loading...</div>
+        <div class="matchprofile-details-text" id="oldest-photo-date">Oldest Photo Upload: Loading...</div>
+        <div class="matchprofile-details-text">Likes Remaining: Coming Soon</div>
+        <div class="matchprofile-details-text">Next Likes Reset: Coming Soon</div>
+    `;
+
+    section.appendChild(title);
+    section.appendChild(content);
+
+    // Insert as the first child of desktop-dt-right
+    rightPanel.insertBefore(section, rightPanel.firstChild);
+
 }
 
 function enhanceInterestedUsersPhotos() {
