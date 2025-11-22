@@ -25,10 +25,37 @@ if (document.readyState === 'loading') {
 // Main initialization
 async function init() {
     await loadSettings();
+    listenForLikesRemaining();
     listenForLikesCount();
     listenForSettingsUpdates();
     setupObservers();
     updateLikesIncomingCount();
+}
+
+function listenForLikesRemaining() {
+    window.addEventListener('message', (event) => {
+        if (event.source === window && event.data.type === 'LIKES_REMAINING_COUNT') {
+            const count = event.data.count;
+            localStorage.setItem('previous_likes_remaining', count);
+            //if the Cupid Enhanced section exists, update the displayed value
+            const likesRemainingElement = document.getElementById('likes-remaining');
+            if (likesRemainingElement) {
+                likesRemainingElement.textContent = `Likes Remaining: ${count}`;
+            }
+        }
+        if (event.source === window && event.data.type === 'LIKES_RESET_TIME') {
+            const time = event.data.time;
+            // convert epoch to readable date
+            const readableTime = new Date(time * 1000).toLocaleString();
+            localStorage.setItem('likes_reset_time', readableTime);
+            
+            //if the Cupid Enhanced section exists, update the displayed value
+            const likesResetTimeElement = document.getElementById('likes-reset-time');
+            if (likesResetTimeElement) {
+                likesResetTimeElement.textContent = `Next Likes Reset: ${readableTime}`;
+            }
+        }
+    });
 }
 
 // Add horizontal scroll support for discover page
@@ -113,11 +140,11 @@ function setupObservers() {
 }
 
 // Likes count management
-async function updateLikesIncomingCount() {
+function updateLikesIncomingCount() {
     if (!currentSettings.likesCount) return;
 
-    const { likesIncomingCount = 0 } = await chrome.storage.local.get(['likesIncomingCount']);
-    updateLikesUI(likesIncomingCount);
+    const count = parseInt(localStorage.getItem('previous_likes_count') || '0', 10);
+    updateLikesUI(count);
 }
 
 function updateLikesUI(count) {
@@ -139,16 +166,12 @@ function replaceInterestWithLikes() {
 }
 
 function listenForLikesCount() {
-    window.addEventListener('message', async (event) => {
-        if (event.source !== window || event.data.type !== 'SAVE_LIKES_COUNT') return;
-
-        const { count } = event.data;
-        await chrome.storage.local.set({ likesIncomingCount: count });
-
+    // Poll local storage periodically for likes count updates
+    setInterval(() => {
         if (currentSettings.likesCount) {
-            updateLikesUI(count);
+            updateLikesIncomingCount();
         }
-    });
+    }, 2000); // Check every 2 seconds
 }
 
 function enhanceDiscoverPage() {
@@ -193,13 +216,16 @@ function addCupidEnhancedSection() {
     title.className = 'dt-section-title';
     title.textContent = 'Cupid Enhanced';
 
+    const likesRemaining = localStorage.getItem('previous_likes_remaining') || 'Make first vote to display';
+    const likesResetTime = localStorage.getItem('likes_reset_time') || 'Make first vote to display';
+
     const content = document.createElement('div');
     content.className = 'dt-section-content';
     content.innerHTML = `
         <div class="matchprofile-details-text" id="newest-photo-date">Newest Photo Upload: Loading...</div>
         <div class="matchprofile-details-text" id="oldest-photo-date">Oldest Photo Upload: Loading...</div>
-        <div class="matchprofile-details-text">Likes Remaining: Coming Soon</div>
-        <div class="matchprofile-details-text">Next Likes Reset: Coming Soon</div>
+        <div class="matchprofile-details-text" id="likes-remaining">Likes Remaining: ${likesRemaining}</div>
+        <div class="matchprofile-details-text" id="likes-reset-time">Next Likes Reset: ${likesResetTime}</div>
     `;
 
     section.appendChild(title);

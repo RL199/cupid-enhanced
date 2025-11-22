@@ -31,6 +31,23 @@
         try {
             const data = JSON.parse(text);
 
+            //fetch likes remaining count
+            if (data?.data?.userVote?.likesRemaining != null) {
+                // send chrome message to content script
+                window.postMessage({
+                    type: 'LIKES_REMAINING_COUNT',
+                    count: data.data.userVote.likesRemaining
+                }, '*');
+            }
+            // fetch likes remaining reset time
+            if (data?.data?.userVote?.likesCapResetTime != null) {
+                // send chrome message to content script
+                window.postMessage({
+                    type: 'LIKES_RESET_TIME',
+                    time: data.data.userVote.likesCapResetTime
+                }, '*');
+            }
+
             // Unblur profile images in "who liked you" data
             if (data?.data?.me?.likes?.data && settings.unblurImages) {
                 data.data.me.likes.data.forEach(like => {
@@ -39,14 +56,6 @@
                     }
                 });
                 return JSON.stringify(data);
-            }
-
-            // Send likes count to isolated world for storage
-            if (data?.data?.me?.notificationCounts?.likesIncoming && settings.likesCount) {
-                window.postMessage({
-                    type: 'SAVE_LIKES_COUNT',
-                    count: data.data.me.notificationCounts.likesIncoming
-                }, '*');
             }
 
             return text;
