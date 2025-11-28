@@ -84,9 +84,19 @@ function setupEventListeners() {
     });
 }
 
+// Display version from manifest
+function displayVersion() {
+    const manifest = chrome.runtime.getManifest();
+    const versionElement = document.getElementById('version');
+    if (versionElement) {
+        versionElement.textContent = `v${manifest.version}`;
+    }
+}
+
 // Initialize popup
 async function init() {
     try {
+        displayVersion();
         await loadSettings();
         updateUI();
         setupEventListeners();
