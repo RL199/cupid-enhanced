@@ -165,7 +165,7 @@ function listenForLikesRemaining() {
         if (event.source === window && event.data.type === 'LIKES_RESET_TIME') {
             const time = event.data.time;
             // convert epoch to readable date
-            const readableTime = new Date(time * 1000).toLocaleString();
+            const readableTime = new Date(time).toLocaleString();
             localStorage.setItem('likes_reset_time', readableTime);
 
             //if the Cupid Enhanced section exists, update the displayed value
