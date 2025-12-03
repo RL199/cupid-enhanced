@@ -31,6 +31,7 @@ async function init() {
     listenForSettingsUpdates();
     setupObservers();
     updateLikesIncomingCount();
+    setupKeyboardShortcuts();
     if (currentSettings.darkMode) {
         enableDarkMode();
     }
@@ -58,10 +59,6 @@ function enableDarkMode() {
         style.id = 'cupid-dark-mode-styles';
         style.textContent = `
             /* Main backgrounds */
-            body, html {
-                background-color: #1a1a1a !important;
-                color: #fff !important;
-            }
 
             /* Card backgrounds */
             .desktop-dt-wrapper,
@@ -308,6 +305,8 @@ function enhanceDiscoverPage() {
         { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
     ];
 
+    let debounceTimer = null;
+
     const observer = new MutationObserver(() => {
         if (!currentSettings.enhanceDiscoverPage) return;
 
@@ -317,20 +316,179 @@ function enhanceDiscoverPage() {
             });
         });
 
-        // Add Cupid Enhanced info section
-        addCupidEnhancedSection();
+        // Debounce the section update to prevent rapid firing
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            addCupidEnhancedSection();
+        }, 300);
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
     return observer;
 }
 
+// Store image metadata cache
+let imageMetadataCache = {};
+let isFetchingMetadata = false; // Prevent redundant fetches
+let lastFetchedUserId = null; // Track which user's photos we've fetched
+
+// Regex to extract image URL from background-image CSS
+const BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
+
+// Extract base URL (without query params) from full URL
+function getBaseImageUrl(url) {
+    return url.split('?')[0];
+}
+
+// Get current user ID from the page
+function getCurrentUserId() {
+    const wrapper = document.querySelector('.desktop-dt-wrapper');
+    return wrapper?.getAttribute('data-user-id') || null;
+}
+
+// Get all profile photo URLs from the current discover page
+function getDiscoverPagePhotoUrls() {
+    const photoUrls = [];
+    const photoContainer = document.querySelector('.sliding-pagination-inner-content');
+
+    if (!photoContainer) return photoUrls;
+
+    // Find all elements with background-image containing pictures.match.com
+    photoContainer.querySelectorAll('[style*="background-image"]').forEach(element => {
+        const style = element.getAttribute('style') || '';
+        const match = style.match(BACKGROUND_IMAGE_REGEX);
+        if (match && match[1]) {
+            photoUrls.push(match[1]); // Keep full URL with query params for fetching
+        }
+    });
+
+    return [...new Set(photoUrls)]; // Remove duplicates
+}
+
+// Fetch Last-Modified header for an image URL
+async function fetchImageLastModified(imageUrl) {
+    try {
+        const response = await fetch(imageUrl, { method: 'GET' });
+        const lastModified = response.headers.get('Last-Modified');
+        console.log('[Cupid Enhanced] Fetched:', imageUrl, 'Last-Modified:', lastModified);
+        return lastModified;
+    } catch (e) {
+        console.log('[Cupid Enhanced] Failed to fetch:', imageUrl, e);
+        return null;
+    }
+}
+
+// Fetch metadata for all discovered images
+async function fetchAllImageMetadata() {
+    // Prevent concurrent fetches
+    if (isFetchingMetadata) return;
+    
+    const currentUserId = getCurrentUserId();
+    
+    // Skip if we already fetched for this user
+    if (currentUserId && currentUserId === lastFetchedUserId) {
+        updatePhotoDateDisplay();
+        return;
+    }
+
+    const photoUrls = getDiscoverPagePhotoUrls();
+    
+    if (photoUrls.length === 0) return;
+
+    isFetchingMetadata = true;
+    
+    // Clear cache when switching users
+    if (currentUserId !== lastFetchedUserId) {
+        imageMetadataCache = {};
+        lastFetchedUserId = currentUserId;
+    }
+
+    console.log('[Cupid Enhanced] Fetching metadata for', photoUrls.length, 'images');
+
+    try {
+        // Fetch all in parallel
+        const results = await Promise.all(
+            photoUrls.map(async (url) => {
+                const lastModified = await fetchImageLastModified(url);
+                return { url: getBaseImageUrl(url), lastModified };
+            })
+        );
+
+        // Update cache with results
+        results.forEach(({ url, lastModified }) => {
+            if (lastModified) {
+                imageMetadataCache[url] = lastModified;
+            }
+        });
+
+        updatePhotoDateDisplay();
+    } finally {
+        isFetchingMetadata = false;
+    }
+}
+
+// Update the photo date display with oldest/newest dates
+function updatePhotoDateDisplay() {
+    const newestElement = document.getElementById('newest-photo-date');
+    const oldestElement = document.getElementById('oldest-photo-date');
+
+    if (!newestElement || !oldestElement) return;
+
+    const photoUrls = getDiscoverPagePhotoUrls().map(getBaseImageUrl);
+
+    if (photoUrls.length === 0) {
+        newestElement.textContent = 'Newest Photo Upload: No photos found';
+        oldestElement.textContent = 'Oldest Photo Upload: No photos found';
+        return;
+    }
+
+    // Get Last-Modified dates for photos we have metadata for
+    const photoDates = [];
+    photoUrls.forEach(url => {
+        const lastModified = imageMetadataCache[url];
+        if (lastModified) {
+            photoDates.push({
+                url,
+                date: new Date(lastModified)
+            });
+        }
+    });
+
+    if (photoDates.length === 0) {
+        newestElement.textContent = 'Newest Photo Upload: Loading...';
+        oldestElement.textContent = 'Oldest Photo Upload: Loading...';
+        return;
+    }
+
+    // Sort by date
+    photoDates.sort((a, b) => a.date - b.date);
+
+    const oldest = photoDates[0];
+    const newest = photoDates[photoDates.length - 1];
+
+    const formatDate = (date) => date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+
+    newestElement.textContent = `Newest Photo Upload: ${formatDate(newest.date)}`;
+    oldestElement.textContent = `Oldest Photo Upload: ${formatDate(oldest.date)}`;
+}
+
 function addCupidEnhancedSection() {
     const rightPanel = document.querySelector('.desktop-dt-right');
     if (!rightPanel) return;
 
+    // Check if we need to fetch for a new user
+    const currentUserId = getCurrentUserId();
+    const needsFetch = currentUserId && currentUserId !== lastFetchedUserId;
+
     if (document.querySelector('.cupid-enhanced-section')) {
-        // Section exists, update photo dates if needed
+        // Section exists, only fetch if it's a new user
+        if (needsFetch && !isFetchingMetadata) {
+            fetchAllImageMetadata();
+        }
         return;
     }
 
@@ -360,6 +518,8 @@ function addCupidEnhancedSection() {
     // Insert as the first child of desktop-dt-right
     rightPanel.insertBefore(section, rightPanel.firstChild);
 
+    // Fetch image metadata directly
+    fetchAllImageMetadata();
 }
 
 function enhanceInterestedUsersPhotos() {
