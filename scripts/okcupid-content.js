@@ -70,9 +70,27 @@ function enableDarkMode() {
             .card-content-header,
             .profile-questions-entry,
             .lMKCh7F9nqebnDd56PN0,
+            .desktop-dt-top,
+            #profile,
+            .profile-nudge-text,
+            .profile-essay,
+            .profile-essay-header,
+            .userrows-content,
+            .k6uyo105F1doQ1ZUZE6M,
+            .profile-essay-contents,
+            .profile-essay-respond.profile-essay-respond--liked,
             .profilesection {
                 background-color: #1a1a1a !important;
                 color: #fff !important;
+            }
+
+            .dt-section-title{
+            border-start-start-radius: 0 !important;
+            border-start-end-radius: 0 !important;
+            }
+
+            div.tUbfLrJUCHtIlWpDjR_S {
+            background-color: transparent !important;
             }
 
             /* Text colors */
@@ -80,6 +98,8 @@ function enableDarkMode() {
             .card-content-header__location,
             .matchprofile-details-text,
             .dt-essay-text,
+            .superlike-button-label,
+            .dt-action-buttons-button.like,
             .profilesection-title {
                 color: #fff !important;
             }
@@ -88,9 +108,20 @@ function enableDarkMode() {
             line-height: normal !important;
             }
 
-            .FhQz9_b2kDEEGYsYah5k {
-            color: #3639ffff !important;
+            .FhQz9_b2kDEEGYsYah5k,
+            .match-percentage.match-percentage--circle {
+            color: #fff !important;
             }
+
+            .match-percentage.match-percentage--circle {
+            border-color: #fff !important;
+            }
+
+            .desktop-dt-top,
+            .dt-section{
+            border: 2px solid #e6e6e6 !important;
+            }
+
 
             .dt-section-title,
             .profilesection-title {
@@ -98,21 +129,14 @@ function enableDarkMode() {
                 background-color: #fff !important;
             }
 
-            /* Borders and dividers */
-            .dt-section {
-                border-color: #333 !important;
+            /* Photo fade overlays - change from white to black */
+            .sliding-pagination-fade.right,
+            .sliding-pagination-fade.left {
+                background: linear-gradient(to right, rgba(26, 26, 26, 0), rgba(26, 26, 26, 1)) !important;
             }
 
-            /* Icons - keep them visible */
-            .matchprofile-details-icon path,
-            svg path[fill="#1A1A1A"] {
-                fill: #fff !important;
-            }
-
-            /* Button text */
-            .dt-action-buttons-button-text,
-            .superlike-button-label {
-                color: #1a1a1a !important;
+            .sliding-pagination-fade.left {
+                background: linear-gradient(to left, rgba(26, 26, 26, 0), rgba(26, 26, 26, 1)) !important;
             }
         `;
         document.head.appendChild(style);
