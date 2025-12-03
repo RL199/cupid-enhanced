@@ -36,6 +36,20 @@ async function init() {
     }
 }
 
+// Setup keyboard shortcuts
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (event) => {
+        // Ctrl+Enter to send like when comment tray is open
+        if (event.ctrlKey && event.key === 'Enter') {
+            const sendLikeButton = document.querySelector('button[data-cy="messenger.sendButton"]');
+            if (sendLikeButton) {
+                event.preventDefault();
+                sendLikeButton.click();
+            }
+        }
+    });
+}
+
 // Enable dark mode on the site
 function enableDarkMode() {
     // Inject dark mode styles
