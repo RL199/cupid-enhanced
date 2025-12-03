@@ -392,7 +392,8 @@ function blockPremiumAds() {
         '.sIZ02EKchd4I0KnGgDgF.t1LDnewkFIu_5Qelhi_u',
         '.MgfNUNvEHRmbdo7IccK9.sidebar-with-card-view',
         '.okmasthead.incognito-masthead',
-        '.J8RXzumIQVAo3qnCBqHr'
+        '.J8RXzumIQVAo3qnCBqHr',
+        '.profile-content-ad'
     ];
 
     const observer = new MutationObserver(() => {
