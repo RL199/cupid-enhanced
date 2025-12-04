@@ -459,6 +459,7 @@ function enhanceDiscoverPage() {
         if (!currentSettings.enhanceDiscoverPage) return;
 
         applyStylesToElements(DISCOVER_PAGE_ENHANCEMENTS);
+        displayPhotoDatesOnImages();
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(addCupidEnhancedSection, 300);
@@ -541,6 +542,7 @@ async function fetchAllImageMetadata() {
         });
 
         updatePhotoDateDisplay();
+        displayPhotoDatesOnImages();
     } finally {
         isFetchingMetadata = false;
     }
@@ -583,6 +585,58 @@ function updatePhotoDateDisplay() {
 function setPhotoDateText(newestEl, oldestEl, status) {
     newestEl.textContent = `Newest Photo Upload: ${status}`;
     oldestEl.textContent = `Oldest Photo Upload: ${status}`;
+}
+
+function displayPhotoDatesOnImages() {
+    const photoWrappers = document.querySelectorAll('.dt-photo');
+
+    photoWrappers.forEach(wrapper => {
+        const imageEl = wrapper.querySelector('[style*="background-image"]');
+        if (!imageEl) return;
+
+        const match = (imageEl.getAttribute('style') || '').match(BACKGROUND_IMAGE_REGEX);
+        if (!match || !match[1]) return;
+
+        const url = getBaseImageUrl(match[1]);
+        const lastModified = imageMetadataCache[url];
+
+        if (lastModified) {
+            const date = new Date(lastModified);
+            const dateString = date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            let label = wrapper.querySelector('.cupid-photo-date');
+            if (!label) {
+                label = document.createElement('div');
+                label.className = 'cupid-photo-date';
+                label.style.cssText = `
+                    position: absolute;
+                    bottom: 10px;
+                    left: 17%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 0, 0, 0.7);
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    pointer-events: none;
+                    z-index: 100;
+                    white-space: nowrap;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                `;
+                wrapper.style.position = 'relative';
+                wrapper.appendChild(label);
+            }
+
+            if (label.textContent !== dateString) {
+                label.textContent = dateString;
+            }
+        }
+    });
 }
 
 // =============================================================================
