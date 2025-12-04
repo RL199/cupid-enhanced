@@ -60,19 +60,85 @@ const DISCOVER_PAGE_ENHANCEMENTS = [
 const BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
 
 const DARK_MODE_STYLES = `
+    /* ===========================================
+       GLOBAL DARK MODE
+       =========================================== */
+
+    /* Force dark backgrounds */
+    body, main, .pageMain, .userrows-content, .userrows-main, .userrows-card-container {
+        background-color: #121212ff !important;
+    }
+
+    /* Global text & icons */
+    h1, h2, h3, h4, button {
+        color: #ffffff !important;
+    }
+    svg, path {
+        fill: #ffffff !important;
+        stroke: none !important;
+    }
+
+    /* ===========================================
+       LIKES YOU PAGE - Card Fixes
+       =========================================== */
+
+    /* Card top half (photo area) - black background for missing images */
+    .userrows-main a > div:first-child {
+        background-color: #1a1a1a !important;
+        border-color: #1a1a1a !important;
+    }
+
+    .woVgqTcOq5JxwG6vYaRv {
+        color: #0000bf !important;
+    }
+
+    /* The image itself - transparent to show the background-image */
+    .userrows-main a > div:first-child > div[style*="url"] {
+        background-color: transparent !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        z-index: 1 !important;
+    }
+
+    /* Overlay fix - make non-image overlays transparent */
+    .userrows-main a > div:first-child > div:not([style*="url"]):not(.SqqfnFrP2JvSxoesgTec) {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+
+    /* Keep the info overlay (SqqfnFrP2JvSxoesgTec) visible */
+    .SqqfnFrP2JvSxoesgTec {
+        z-index: 999999999999 !important;
+        pointer-events: auto !important;
+        position: relative !important;
+    }
+
+    /* Bottom half (text info) */
+    .userrows-main a > div:last-child {
+        background-color: #1a1a1a !important;
+    }
+
+    /* Buttons */
+    button {
+        background-color: #222 !important;
+        border: 1px solid #444 !important;
+    }
+
+    /* ===========================================
+       DISCOVER PAGE & PROFILE
+       =========================================== */
+
     /* Card backgrounds */
     .desktop-dt-wrapper,
     .dt-section,
     .dt-section-content,
     .card-content-header,
     .profile-questions-entry,
-    .lMKCh7F9nqebnDd56PN0,
     .desktop-dt-top,
     #profile,
     .profile-nudge-text,
     .profile-essay,
     .profile-essay-header,
-    .userrows-content,
     .k6uyo105F1doQ1ZUZE6M,
     .profile-essay-contents,
     .profile-essay-respond.profile-essay-respond--liked,
