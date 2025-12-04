@@ -1,4 +1,19 @@
-# <div align="center"><img src="cupid-enhanced.svg" alt="Cupid Enhanced Logo"></div>
+# <div align="center"><img src="assets/branding/cupid-enhanced.svg" alt="Cupid Enhanced Logo"></div>
+
+<div align="center">
+  <a href="https://github.com/RL199/cupid-enhanced/issues">
+    <img src="https://img.shields.io/github/issues/RL199/cupid-enhanced?style=for-the-badge&color=FF7AB3" alt="issues">
+  </a>
+  <a href="https://github.com/RL199/cupid-enhanced/releases">
+    <img src="https://img.shields.io/github/v/release/RL199/cupid-enhanced?style=for-the-badge&include_prereleases&color=FF7AB3" alt="version">
+  </a>
+  <a href="https://github.com/RL199/cupid-enhanced/releases">
+    <img src="https://img.shields.io/github/release-date/RL199/cupid-enhanced?style=for-the-badge&color=FF7AB3" alt="release date">
+  </a>
+  <a href="https://github.com/RL199/cupid-enhanced/releases">
+    <img src="https://img.shields.io/github/downloads/RL199/cupid-enhanced/total?style=for-the-badge&color=FF7AB3" alt="downloads">
+  </a>
+</div>
 
 <p align="center">
   <em>Enhances the OkCupid platform for better usability and features.</em>
@@ -30,8 +45,6 @@
     - [Future Considerations](#future-considerations)
   - [🔐 Privacy and Security](#-privacy-and-security)
     - [Permissions](#permissions)
-  - [👥 Contributing](#-contributing)
-  - [📝 License](#-license)
   - [❓ FAQs](#-faqs)
     - [Can I use this extension on other browsers?](#can-i-use-this-extension-on-other-browsers)
     - [Is this extension safe to use?](#is-this-extension-safe-to-use)
@@ -45,14 +58,15 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 
 ## 🎯 Features
 
-### ✨ Visual Enhancements
-- **🖼️ Unblur Profile Images** - View clear, unblurred profile pictures without restrictions
-- **📊 Enhance Discover Page** - Improved layout and better photo display on the discover page
-- **🎨 Enhance Interested Photos** - Better photo display and height optimization in the interested users section
+### 🔒 Privacy & Photos
+- **👁️ Reveal Who Liked You** - View clear, unblurred profile pictures of users who liked you
+- **📸 Show Full-Size Photos** - Remove height restrictions and view photos in their full glory
+- **💯 Display Real Like Numbers** - See your actual like count instead of "99+"
 
-### 📈 Data & Interface
-- **💯 Show Actual Likes Count** - Replace the "99+" limitation with real numbers to see your true like count
-- **🚫 Block Premium Ads** - Hide all premium upgrade prompts for a cleaner browsing experience
+### 🎨 Layout & Navigation
+- **📐 Widen Discover Layout** - Expanded page width (90%) with better centering for larger viewing area
+- **🖱️ Mouse Scroll to Browse** - Use horizontal mouse scroll to navigate through profiles
+- **🚫 Hide Premium Promotions** - Clean interface without premium upgrade ads
 
 ### 🎛️ Customization
 - **⚙️ Settings Popup** - Beautiful dark-themed popup with easy toggle controls for all features
@@ -80,8 +94,8 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 
 After installation, click the extension icon in your Chrome toolbar to open the settings popup. You can enable or disable any feature:
 
-1. **Visual Enhancements** section controls image and layout improvements
-2. **Data & Interface** section controls data display and ad blocking
+1. **Privacy & Photos** section controls image visibility and data display
+2. **Layout & Navigation** section controls page layout, browsing, and ad blocking
 3. All settings are saved automatically and apply immediately
 
 ## 📊 Usage
@@ -97,9 +111,9 @@ After installation, click the extension icon in your Chrome toolbar to open the 
 ### Popup Page
 
 The extension features a beautiful dark-themed popup with gradient colors matching the logo, providing easy access to all settings with toggle switches for each feature.
-
-![Popup Settings](Screenshots/popup_page.png)
-
+<div align="center">
+  <img src="assets/screenshots/popup_page.png" alt="Cupid Enhanced Popup Screenshot">
+</div>
 
 ## 🛠️ Technical Details
 
@@ -134,7 +148,6 @@ The extension features a beautiful dark-themed popup with gradient colors matchi
 
 ### Future Considerations
 
-- Export/Import settings
 - Statistics dashboard
 - Advanced filtering options
 - More customization controls
@@ -157,15 +170,6 @@ The extension requires the following permissions:
 - **`storage`** - To save your settings preferences locally
 - **`tabs`** - To communicate settings updates to active OkCupid tabs
 - **Host Permission (`https://www.okcupid.com/*`)** - To run content scripts on OkCupid pages
-
-
-## 👥 Contributing
-
-Feel free to open issues and submit pull requests. Please ensure your code follows the existing style and includes appropriate documentation.
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## ❓ FAQs
 
