@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
     unblurImages: true,
     likesCount: true,
     enhanceDiscoverPage: true,
+    enhanceLikesYouPage: true,
     blockPremiumAds: true,
     horizontalScroll: true,
     darkMode: true
@@ -56,6 +57,12 @@ const DISCOVER_PAGE_ENHANCEMENTS = [
     { selector: '.desktop-dt-right', styles: { marginLeft: '10px' } },
     { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content', justifyContent: 'center' } },
     { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
+];
+
+const LIKES_YOU_PAGE_ENHANCEMENTS = [
+    { selector: '.userrows-content', styles: { maxWidth: '95%', width: '95%', justifyContent: 'center' } },
+    { selector: '.userrows-content-main', styles: { maxWidth: '100%', width: '100%', flex: '1 1 auto' } },
+    { selector: '.userrows-main', styles: { maxWidth: '100%', width: '100%' } }
 ];
 
 const HIDDEN_STACKS = [
@@ -291,6 +298,60 @@ const DARK_MODE_STYLES = `
     }
 `;
 
+const LIKES_YOU_STYLES = `
+    /* Expand container width */
+    .userrows-content,
+    .userrows-card-container,
+    .Q8o8ldWxQdXz5zE0jhgx,
+    .ogFfHbz4Rbttu2zVAYGe {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    .userrows-content-main {
+        max-width: 100% !important;
+        width: 100% !important;
+        flex: 1 1 auto !important;
+        margin-inline-start: 0 !important;
+    }
+
+    .userrows-content-sort{
+        max-width: 100% !important;
+        position: center !important;
+        justify-items: center !important;
+    }
+
+    /* Override JS Grid/Masonry Layout */
+    .incoming-likes-voting-list > div > div,
+    .jBtTsboeLJtQL55nQsEi > div {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+        height: auto !important;
+        position: relative !important;
+        gap: 10px !important;
+        padding-bottom: 20px !important;
+        justify-content: center !important;
+        margin: 0 auto !important;
+    }
+
+    /* Reset individual card positioning */
+    .incoming-likes-voting-list > div > div > div,
+    .userrows-main > div > div > div {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Ensure inner content fills the card */
+    .incoming-likes-voting-list > div > div > div a,
+    .userrows-main > div > div > div a {
+        width: 100% !important;
+        display: block !important;
+    }
+`;
+
 // =============================================================================
 // State
 // =============================================================================
@@ -364,20 +425,31 @@ function resetPhotoDateDisplay() {
 }
 
 // =============================================================================
+// Style Injection Helpers
+// =============================================================================
+
+function injectStyles(id, css) {
+    if (document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = css;
+    document.head.appendChild(style);
+}
+
+function removeStyles(id) {
+    document.getElementById(id)?.remove();
+}
+
+// =============================================================================
 // Dark Mode
 // =============================================================================
 
 function enableDarkMode() {
-    if (document.getElementById('cupid-dark-mode-styles')) return;
-
-    const style = document.createElement('style');
-    style.id = 'cupid-dark-mode-styles';
-    style.textContent = DARK_MODE_STYLES;
-    document.head.appendChild(style);
+    injectStyles('cupid-dark-mode-styles', DARK_MODE_STYLES);
 }
 
 function disableDarkMode() {
-    document.getElementById('cupid-dark-mode-styles')?.remove();
+    removeStyles('cupid-dark-mode-styles');
 }
 
 // =============================================================================
@@ -475,6 +547,7 @@ function applySettings() {
 function setupObservers() {
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
+        { key: 'likesYouPage', setting: 'enhanceLikesYouPage', fn: enhanceLikesYouPage },
         { key: 'premiumAds', setting: 'blockPremiumAds', fn: blockPremiumAds }
     ];
 
@@ -546,6 +619,16 @@ function enhanceDiscoverPage() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(addCupidEnhancedSection, 300);
     });
+}
+
+function enhanceLikesYouPage() {
+    if (!currentSettings.enhanceLikesYouPage) return;
+
+    injectStyles('cupid-likes-you-styles', LIKES_YOU_STYLES);
+
+    return {
+        disconnect: () => removeStyles('cupid-likes-you-styles')
+    };
 }
 
 function setupRewindButton() {
