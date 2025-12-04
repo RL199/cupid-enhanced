@@ -32,7 +32,8 @@ const SELECTORS = {
     navbarLinkText: '.navbar-link-text',
     prevButton: '.sliding-pagination-button.prev',
     nextButton: '.sliding-pagination-button.next',
-    cupidSection: '.cupid-enhanced-section'
+    cupidSection: '.cupid-enhanced-section',
+    actionButton: '.dt-action-buttons-button'
 };
 
 const PREMIUM_AD_SELECTORS = [
@@ -183,6 +184,7 @@ function setupEventListeners() {
     listenForLikesData();
     listenForSettingsUpdates();
     startLikesCountPolling();
+    setupPassButtonListener();
 }
 
 function setupKeyboardShortcuts() {
@@ -193,6 +195,21 @@ function setupKeyboardShortcuts() {
             if (sendLikeButton) event.preventDefault();
         }
     });
+}
+
+function setupPassButtonListener() {
+    document.addEventListener('click', (event) => {
+        const actionButton = event.target.closest(SELECTORS.actionButton);
+        if (actionButton) {
+            resetPhotoDateDisplay();
+        }
+    });
+}
+
+function resetPhotoDateDisplay() {
+    const newestElement = document.getElementById('newest-photo-date');
+    const oldestElement = document.getElementById('oldest-photo-date');
+    setPhotoDateText(newestElement, oldestElement, 'Loading...');
 }
 
 // =============================================================================
