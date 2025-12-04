@@ -100,6 +100,14 @@ const DARK_MODE_STYLES = `
         color: #fff !important;
     }
 
+    .dt-essay-expand-button, .dt-essay-collapse-button {
+        color: deepskyblue !important;
+    }
+
+    .dt-essay-expand {
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #1a1a1a 45%, #1a1a1a 100%) !important;
+    }
+
     .RdZlPEHL94PdRZqJm_GF {
         line-height: normal !important;
     }
