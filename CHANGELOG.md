@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Spoof Premium Badge feature to show premium badge without premium subscription
 - See all of who was interested in you and sort the list.
 - Hide the incognito banner via Block Premium Ads feature
-- Dark mode support (new popup setting)
+- Dark mode support (new experimental popup setting)
 
 ### Changed
 - Centered layout for Enhance Discover Page feature
