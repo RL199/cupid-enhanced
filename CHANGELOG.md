@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed titles in popup settings for clarity
 - Updated location of extension assets
 
+### Removed
+- "Enhance Interested Profile Photos" option, as a better feature is now always enabled.
+
 ## [0.9.0] - 2025-11-18
 
 ### Added
