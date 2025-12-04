@@ -263,10 +263,10 @@ const DARK_MODE_STYLES = `
     }
 
     .yhiooHkKxDD3bSd9Svs4.s2IzO3FJ1CYcQrS7Kiwa:before {
-        background: linear-gradient(to left, #121212e7  0%, #22222236 100%) !important;
+        background: linear-gradient(270deg, #121212  30%, rgba(34, 34, 34, 0.5) 80%, rgba(34, 34, 34, 0) 100%) !important;
     }
     .yhiooHkKxDD3bSd9Svs4.Jd_Ct99A9ZvnQzJUn1bi:before {
-        background: linear-gradient(to right, #22222236  0%, #121212e7 100%) !important;
+        background: linear-gradient(90deg, #121212  30%, rgba(34, 34, 34, 0.5) 80%, rgba(34, 34, 34, 0) 100%) !important;
     }
 `;
 
