@@ -11,7 +11,7 @@
 <body>
     <div class="popup-container">
         <div class="header">
-            <img src="../cupid-enhanced.svg" alt="Cupid Enhanced" class="header-logo">
+            <img src="../assets/branding/cupid-enhanced.svg" alt="Cupid Enhanced" class="header-logo">
         </div>
 
         <div class="settings-container">
@@ -22,9 +22,30 @@
                         <path
                             d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" />
                     </svg>
-                    Visual Enhancements
+                    Privacy & Photos
                 </h2>
-                <div id="settings-visual"></div>
+                <div id="settings-visual">
+                    <div class="setting-item" data-setting="unblurImages">
+                        <div class="setting-info">
+                            <h3 class="setting-title">Reveal Who Liked You</h3>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="unblurImages">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item" data-setting="likesCount">
+                        <div class="setting-info">
+                            <h3 class="setting-title">Display Real Like Numbers</h3>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="likesCount">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                </div>
             </div>
 
             <div class="settings-section">
@@ -33,15 +54,55 @@
                         <path
                             d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 2h-4v3h4zm0 4h-4v3h4zm0 4h-4v3h3a1 1 0 0 0 1-1zm-5 3v-3H6v3zm-5 0v-3H1v2a1 1 0 0 0 1 1zm-4-4h4V8H1zm0-4h4V4H1zm5-3v3h4V4zm4 4H6v3h4z" />
                     </svg>
-                    Data & Interface
+                    Layout & Navigation
                 </h2>
-                <div id="settings-data"></div>
+                <div id="settings-data">
+                    <div class="setting-item" data-setting="enhanceDiscoverPage">
+                        <div class="setting-info">
+                            <h3 class="setting-title">Better Discover Layout</h3>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="enhanceDiscoverPage">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item" data-setting="horizontalScroll">
+                        <div class="setting-info">
+                            <h3 class="setting-title">Horizontal Mouse Scroll to Browse</h3>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="horizontalScroll">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item" data-setting="blockPremiumAds">
+                        <div class="setting-info">
+                            <h3 class="setting-title">Hide Promotions</h3>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="blockPremiumAds">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item" data-setting="darkMode">
+                        <div class="setting-info">
+                            <h3 class="setting-title">Dark Mode (Experimental)</h3>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="darkMode">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="footer">
             <span class="instructions">Refresh the site to apply changes</span>
-            <span class="version">v0.9.0</span>
+            <span class="version" id="version"></span>
         </div>
     </div>
     <script src="popup.js"></script>

@@ -4,8 +4,9 @@ const DEFAULT_SETTINGS = {
     unblurImages: true,
     likesCount: true,
     enhanceDiscoverPage: true,
-    enhanceInterestedPhotos: true,
-    blockPremiumAds: true
+    blockPremiumAds: true,
+    horizontalScroll: true,
+    darkMode: true
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
@@ -47,96 +48,59 @@ async function saveSettings(settings) {
 async function handleToggle(key) {
     const newSettings = { ...currentSettings, [key]: !currentSettings[key] };
     await saveSettings(newSettings);
-    renderSettings();
+    updateUI();
 }
 
-// Create a setting item element
-function createSettingItem(text, key) {
-    const item = document.createElement('div');
-    item.className = 'setting-item';
+// Update UI to reflect current settings
+function updateUI() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][data-key]');
+    checkboxes.forEach(checkbox => {
+        const key = checkbox.dataset.key;
+        checkbox.checked = currentSettings[key];
+    });
+}
 
-    const info = document.createElement('div');
-    info.className = 'setting-info';
-
-    const titleEl = document.createElement('h3');
-    titleEl.className = 'setting-title';
-    titleEl.textContent = text;
-
-    info.appendChild(titleEl);
-
-    const label = document.createElement('label');
-    label.className = 'toggle-switch';
-
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = currentSettings[key];
-    input.addEventListener('change', () => handleToggle(key));
-
-    const slider = document.createElement('span');
-    slider.className = 'toggle-slider';
-
-    label.appendChild(input);
-    label.appendChild(slider);
-
-    item.appendChild(info);
-    item.appendChild(label);
-
-    // Make entire item clickable to toggle
-    item.addEventListener('click', (e) => {
-        // Don't double-toggle if clicking directly on the toggle switch
-        if (!e.target.closest('.toggle-switch')) {
-            handleToggle(key);
-        }
+// Setup event listeners
+function setupEventListeners() {
+    // Add listeners to all checkboxes
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][data-key]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            handleToggle(checkbox.dataset.key);
+        });
     });
 
-    return item;
+    // Make entire setting items clickable
+    const settingItems = document.querySelectorAll('.setting-item');
+    settingItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Don't double-toggle if clicking directly on the toggle switch
+            if (!e.target.closest('.toggle-switch')) {
+                const key = item.dataset.setting;
+                handleToggle(key);
+            }
+        });
+    });
 }
 
-// Render all settings
-function renderSettings() {
-    const visualContainer = document.getElementById('settings-visual');
-    const dataContainer = document.getElementById('settings-data');
-
-    // Clear containers
-    visualContainer.innerHTML = '';
-    dataContainer.innerHTML = '';
-
-    // Visual enhancements
-    visualContainer.appendChild(createSettingItem(
-        'Unblur Profile Images',
-        'unblurImages'
-    ));
-
-    visualContainer.appendChild(createSettingItem(
-        'Enhance Discover Page',
-        'enhanceDiscoverPage'
-    ));
-
-    visualContainer.appendChild(createSettingItem(
-        'Enhance Interested Photos',
-        'enhanceInterestedPhotos'
-    ));
-
-    // Data & Interface
-    dataContainer.appendChild(createSettingItem(
-        "Show Actual Likes Count",
-        'likesCount'
-    ));
-
-    dataContainer.appendChild(createSettingItem(
-        'Block Premium Ads',
-        'blockPremiumAds'
-    ));
+// Display version from manifest
+function displayVersion() {
+    const manifest = chrome.runtime.getManifest();
+    const versionElement = document.getElementById('version');
+    if (versionElement) {
+        versionElement.textContent = `v${manifest.version}`;
+    }
 }
 
 // Initialize popup
 async function init() {
     try {
+        displayVersion();
         await loadSettings();
-        renderSettings();
+        updateUI();
+        setupEventListeners();
     } catch (error) {
         console.error('Failed to initialize popup:', error);
-        // Show error in UI
         document.body.innerHTML = '<div style="padding: 20px; color: #ef4444;">Failed to load settings. Please reload the extension.</div>';
     }
 }
