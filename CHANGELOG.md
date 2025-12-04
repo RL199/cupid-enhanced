@@ -8,8 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-11-20
 
 ### Added
-- Horizontal scroll support for Discover page using mouse wheel
+- Display photo upload dates on discover page photos (Better Discover Page feature)
+- Display a box layout in the Enhance Discover Page feature with: oldest photo date, newest photo date, likes remaining count, and likes count reset time.
+- Horizontal scroll support for Discover page using mouse wheel (new popup setting)
+- ctrl+enter shortcut to send intro messages
+- Spoof Premium Badge feature to show premium badge without premium subscription
+- See all of who was interested in you and sort the list.
 - Hide the incognito banner via Block Premium Ads feature
+- Dark mode support (new popup setting)
 
 ### Changed
 - Centered layout for Enhance Discover Page feature

@@ -220,8 +220,28 @@ const DARK_MODE_STYLES = `
         color: #fff !important;
     }
 
+    .oSOt1sUnt8oxUGlZ0Sjl,
+    .profile-questions-entry-filters,
+    .profile-questions-entry-circles-button,
+    .overflow-button {
+    background-color: transparent !important;
+    }
+
+    .dgJAAI7joMGaC8PFJ7NM.jezzEjGPHApK6sZ6lEhA{
+        border: 2px solid deepskyblue !important;
+    }
+
+    .yprhCCjFc1H5G2uEgbuS{
+        border: 2px solid deepskyblue !important;
+    }
+
     .dt-essay-expand-button, .dt-essay-collapse-button {
         color: deepskyblue !important;
+    }
+
+    .LYEfdMzXSYIrT9DJmry7:hover:before {
+        opacity: 0.3 !important;
+        transform: scale(1) !important;
     }
 
     .dt-essay-expand {
