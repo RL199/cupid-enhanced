@@ -57,6 +57,42 @@ const DISCOVER_PAGE_ENHANCEMENTS = [
     { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
 ];
 
+const HIDDEN_STACKS = [
+    { id: 'BOOST_AD', label: 'Boost' },
+    { id: 'CLIMATE_CHANGE', label: 'Climate Change' },
+    { id: 'JUST_FOR_YOU', label: 'Recommended' },
+    { id: 'MATCH_PERCENTAGE', label: 'Match %' },
+    { id: 'MOST_QUESTIONS', label: 'Question Pros' },
+    { id: 'NEARBY', label: 'Nearby' },
+    { id: 'NEW_USERS', label: 'New Users' },
+    { id: 'ONLINE_NOW', label: 'Online Now' },
+    { id: 'PENPAL', label: 'Passport' },
+    { id: 'POPULAR', label: 'Popular' },
+    { id: 'PROMOTED_QUESTION', label: 'Promoted' },
+    { id: 'PRO_CHOICE', label: 'Pro-Choice' },
+    { id: 'STANDOUTS', label: 'Cupid’s Picks' },
+    { id: 'SUPERLIKES', label: 'SuperLikes' },
+    { id: 'VACCINATED', label: 'Vaccinated' }
+];
+
+const STACK_SLUGS = {
+    'JUST_FOR_YOU': 'recommended',
+    'POPULAR': 'popular',
+    'NEW_USERS': 'new-users',
+    'ONLINE_NOW': 'online',
+    'MOST_QUESTIONS': 'questions',
+    'MATCH_PERCENTAGE': 'match-percentage',
+    'NEARBY': 'nearby',
+    'PENPAL': 'passport',
+    'SUPERLIKES': 'superlikes',
+    'STANDOUTS': 'cupids-picks',
+    'VACCINATED': 'vaccinated',
+    'PRO_CHOICE': 'pro-choice',
+    'CLIMATE_CHANGE': 'climate-change',
+    'BOOST_AD': 'boost',
+    'PROMOTED_QUESTION': 'promoted'
+};
+
 const BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
 
 const DARK_MODE_STYLES = `
@@ -460,6 +496,7 @@ function enhanceDiscoverPage() {
 
         applyStylesToElements(DISCOVER_PAGE_ENHANCEMENTS);
         displayPhotoDatesOnImages();
+        injectHiddenStacks();
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(addCupidEnhancedSection, 300);
@@ -637,6 +674,10 @@ function displayPhotoDatesOnImages() {
             }
         }
     });
+}
+
+function injectHiddenStacks() {
+
 }
 
 // =============================================================================
