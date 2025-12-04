@@ -47,7 +47,8 @@ const PREMIUM_AD_SELECTORS = [
     '.MgfNUNvEHRmbdo7IccK9.sidebar-with-card-view',
     '.okmasthead.incognito-masthead',
     '.J8RXzumIQVAo3qnCBqHr',
-    '.profile-content-ad'
+    '.profile-content-ad',
+    '.read-receipt-cta'
 ];
 
 const DISCOVER_PAGE_ENHANCEMENTS = [
@@ -391,7 +392,7 @@ function listenForLikesData() {
 
         if (type === 'LIKES_REMAINING_COUNT') {
             localStorage.setItem(STORAGE_KEYS.likesRemaining, count);
-            updateElementText('likes-remaining', `Likes Remaining: ${count}`);
+            updateElementText('likes-remaining', `Likes Remaining: ${count} (max 500)`);
         }
 
         if (type === 'LIKES_RESET_TIME') {
@@ -761,7 +762,7 @@ function createCupidSection() {
     content.innerHTML = `
         <div class="matchprofile-details-text" id="newest-photo-date">Newest Photo Upload: Loading...</div>
         <div class="matchprofile-details-text" id="oldest-photo-date">Oldest Photo Upload: Loading...</div>
-        <div class="matchprofile-details-text" id="likes-remaining">Likes Remaining: ${likesRemaining}</div>
+        <div class="matchprofile-details-text" id="likes-remaining">Likes Remaining: ${likesRemaining} (max 500)</div>
         <div class="matchprofile-details-text" id="likes-reset-time">Next Likes Reset: ${likesResetTime}</div>
     `;
 
