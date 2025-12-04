@@ -30,6 +30,7 @@
 
         try {
             const data = JSON.parse(text);
+            let modified = false;
 
             //fetch likes remaining count
             if (data?.data?.userVote?.likesRemaining != null) {
@@ -48,6 +49,22 @@
                 }, '*');
             }
 
+            // Inject Premium Status
+            if (data?.data?.me) {
+                if (!data.data.me.premiums) {
+                    data.data.me.premiums = {};
+                }
+                // Enable all premium features to bypass paywalls
+                data.data.me.premiums.VIEW_VOTES = true;
+                data.data.me.premiums.INTROS = true;
+                data.data.me.premiums.HELICOPTER = true;
+                data.data.me.premiums.ALIST_PREMIUM = true;
+                data.data.me.premiums.INC_LIKES = true;
+                data.data.me.premiums.BOOST = true;
+                data.data.me.premiums.ADFREE = true;
+                modified = true;
+            }
+
             // Unblur profile images in "who liked you" data
             if (data?.data?.me?.likes?.data && settings.unblurImages) {
                 data.data.me.likes.data.forEach(like => {
@@ -55,6 +72,10 @@
                         like.primaryImageBlurred = like.primaryImage;
                     }
                 });
+                modified = true;
+            }
+
+            if (modified) {
                 return JSON.stringify(data);
             }
 
