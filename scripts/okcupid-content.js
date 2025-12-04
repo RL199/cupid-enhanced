@@ -11,7 +11,6 @@ const DEFAULT_SETTINGS = {
     unblurImages: true,
     likesCount: true,
     enhanceDiscoverPage: true,
-    enhanceInterestedPhotos: true,
     blockPremiumAds: true,
     horizontalScroll: true,
     darkMode: true
@@ -475,7 +474,6 @@ function applySettings() {
 
 function setupObservers() {
     const observerConfig = [
-        { key: 'interestedPhotos', setting: 'enhanceInterestedPhotos', fn: enhanceInterestedUsersPhotos },
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
         { key: 'premiumAds', setting: 'blockPremiumAds', fn: blockPremiumAds }
     ];
@@ -821,24 +819,6 @@ function createCupidSection() {
 
     section.append(title, content);
     return section;
-}
-
-// =============================================================================
-// Interested Photos Enhancement
-// =============================================================================
-
-function enhanceInterestedUsersPhotos() {
-    return createBodyObserver(() => {
-        if (!currentSettings.enhanceInterestedPhotos) return;
-
-        document.querySelectorAll('.CNr1suk9pEF3nlOENwde.eJG7lHzUvRC0ejcywkgI').forEach(photo => {
-            photo.style.maxHeight = 'none';
-        });
-
-        document.querySelectorAll('.yfl1DI6BaFRYLQuLCe55').forEach(overlay => {
-            overlay.style.display = 'none';
-        });
-    });
 }
 
 // =============================================================================
