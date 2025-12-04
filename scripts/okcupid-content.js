@@ -20,7 +20,8 @@ const DEFAULT_SETTINGS = {
 const STORAGE_KEYS = {
     likesRemaining: 'previous_likes_remaining',
     likesResetTime: 'likes_reset_time',
-    likesCount: 'previous_likes_count'
+    likesCount: 'previous_likes_count',
+    visitedProfiles: 'visited_profiles'
 };
 
 const SELECTORS = {
@@ -542,10 +543,44 @@ function enhanceDiscoverPage() {
         applyStylesToElements(DISCOVER_PAGE_ENHANCEMENTS);
         displayPhotoDatesOnImages();
         injectHiddenStacks();
+        setupRewindButton();
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(addCupidEnhancedSection, 300);
     });
+}
+
+function setupRewindButton() {
+    const rewindButton = document.querySelector('.desktop-dt-top-rewind');
+    if (!rewindButton || rewindButton.dataset.cupidRewindAttached) return;
+
+    rewindButton.dataset.cupidRewindAttached = 'true';
+
+    rewindButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
+        const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
+        const profiles = result[STORAGE_KEYS.visitedProfiles] || [];
+        const currentUserId = getCurrentUserId();
+
+        let targetId = null;
+
+        // Find the most recent profile that is NOT the current one
+        for (let i = profiles.length - 1; i >= 0; i--) {
+            if (profiles[i] !== currentUserId) {
+                targetId = profiles[i];
+                break;
+            }
+        }
+
+        if (targetId) {
+            window.location.href = `https://www.okcupid.com/profile/${targetId}`;
+        } else {
+            console.log('[Cupid Enhanced] No previous profile found in history.');
+        }
+    }, true);
 }
 
 function applyStylesToElements(enhancements) {
@@ -729,11 +764,29 @@ function injectHiddenStacks() {
 // Cupid Enhanced Section
 // =============================================================================
 
+async function saveVisitedProfile(userId) {
+    const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
+    const profiles = result[STORAGE_KEYS.visitedProfiles] || [];
+
+    //delete userId if it already exists to avoid duplicates
+    const existingIndex = profiles.indexOf(userId);
+    if (existingIndex !== -1) {
+        profiles.splice(existingIndex, 1);
+    }
+
+    profiles.push(userId);
+    await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
+}
+
 function addCupidEnhancedSection() {
     const rightPanel = document.querySelector(SELECTORS.rightPanel);
     if (!rightPanel) return;
 
     const currentUserId = getCurrentUserId();
+    if (currentUserId) {
+        saveVisitedProfile(currentUserId);
+    }
+
     const needsFetch = currentUserId && currentUserId !== lastFetchedUserId;
 
     if (document.querySelector(SELECTORS.cupidSection)) {
