@@ -62,17 +62,27 @@
                 data.data.me.premiums.INC_LIKES = true;
                 data.data.me.premiums.BOOST = true;
                 data.data.me.premiums.ADFREE = true;
+                data.data.me.premiums.INCOGNITO = true;
+                data.data.me.premiums.READ_RECEIPTS = true;
+                data.data.me.premiums.A_LIST = true;
                 modified = true;
             }
 
-            // Unblur profile images in "who liked you" data
-            if (data?.data?.me?.likes?.data && settings.unblurImages) {
-                data.data.me.likes.data.forEach(like => {
-                    if (like.primaryImage) {
-                        like.primaryImageBlurred = like.primaryImage;
+            // Recursively unblur all images in the response
+            if (settings.unblurImages) {
+                const unblur = (obj) => {
+                    if (!obj || typeof obj !== 'object') return;
+                    if (obj.primaryImage && obj.primaryImageBlurred) {
+                        obj.primaryImageBlurred = obj.primaryImage;
+                        modified = true;
                     }
-                });
-                modified = true;
+                    for (const key in obj) {
+                        if (obj[key] && typeof obj[key] === 'object') {
+                            unblur(obj[key]);
+                        }
+                    }
+                };
+                unblur(data);
             }
 
             if (modified) {
