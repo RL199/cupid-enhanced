@@ -27,8 +27,8 @@
   - [📚 Table of Contents](#-table-of-contents)
   - [📖 Project Overview](#-project-overview)
   - [🎯 Features](#-features)
-    - [✨ Visual Enhancements](#-visual-enhancements)
-    - [📈 Data \& Interface](#-data--interface)
+    - [🔒 Privacy \& Photos](#-privacy--photos)
+    - [🎨 Layout \& Navigation](#-layout--navigation)
     - [🎛️ Customization](#️-customization)
   - [⚙️ Installation](#️-installation)
     - [Prerequisites](#prerequisites)
@@ -42,7 +42,6 @@
     - [Features Implementation](#features-implementation)
   - [🗺️ Roadmap](#️-roadmap)
     - [Planned Features](#planned-features)
-    - [Future Considerations](#future-considerations)
   - [🔐 Privacy and Security](#-privacy-and-security)
     - [Permissions](#permissions)
   - [❓ FAQs](#-faqs)
@@ -59,19 +58,23 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 ## 🎯 Features
 
 ### 🔒 Privacy & Photos
-- **👁️ Reveal Who Liked You** - View clear, unblurred profile pictures of users who liked you
-- **📸 Show Full-Size Photos** - Remove height restrictions and view photos in their full glory
-- **💯 Display Real Like Numbers** - See your actual like count instead of "99+"
+- **👁️ Reveal Who Liked You** - View clear, unblurred profile pictures of all users who viewed or liked you and sort the list
+- **💯 Display Real Like Numbers** - See your actual like count instead of "99+ interested"
+- **📅 Photo Dates** - See when profile photos were uploaded on the discover page
 
 ### 🎨 Layout & Navigation
-- **📐 Widen Discover Layout** - Expanded page width (90%) with better centering for larger viewing area
-- **🖱️ Mouse Scroll to Browse** - Use horizontal mouse scroll to navigate through profiles
-- **🚫 Hide Premium Promotions** - Clean interface without premium upgrade ads
+- **📐 Better Discover Layout** - Expanded page width with centered layout, photo dates, and likes remaining counter
+- **🖱️ Horizontal Scroll** - Use mouse wheel to navigate through profiles horizontally
+- **🚫 Hide Promotions** - Clean interface without premium upgrade ads
+- **🏆 Premium plus Badge** - Display premium plus badge (visual only)
+- **⌨️ Shortcuts** - Use `Ctrl+Enter` to send intro messages
+- **⏪ Rewind** - Enable the rewind button functionality
 
 ### 🎛️ Customization
 - **⚙️ Settings Popup** - Beautiful dark-themed popup with easy toggle controls for all features
+- **🌙 Dark Mode** - Experimental dark mode support
 - **💾 Persistent Settings** - Your preferences are saved and synced across sessions
-- **🔄 Real-time Updates** - Changes apply instantly without requiring page reloads
+- **🔄 Partial Real-time Updates** - Some changes apply instantly without requiring page reloads
 
 
 
@@ -141,16 +144,21 @@ The extension features a beautiful dark-themed popup with gradient colors matchi
 
 ### Planned Features
 
-- **📅 Image Dates Display** ([#2](https://github.com/RL199/cupid-enhanced/issues/2)) - Show when profile photos were uploaded on the discover page
-- **⏰ Likes Remaining Counter** ([#3](https://github.com/RL199/cupid-enhanced/issues/3)) - Display how many likes you have left and when the counter resets
 - **🌟 Spotlight Indicator** ([#4](https://github.com/RL199/cupid-enhanced/issues/4)) - See if a user in discover page is from Spotlight
 - **💝 Mutual Like Indicator** ([#5](https://github.com/RL199/cupid-enhanced/issues/5)) - See if users in discover page have already liked you
-
-### Future Considerations
-
-- Statistics dashboard
-- Advanced filtering options
-- More customization controls
+- **📂 Passed Profiles Archive** - Access profiles you've passed on discover page
+- **🤖 AI Intro Message Generator** - Generate personalized intro messages using AI
+- **🌑 Enhanced Dark Mode** - Full dark mode support across all OkCupid pages
+- **📐 Widen Likes You Page Layout** - Similar to discover page layout enhancement
+- **⌨️ Additional Keyboard Shortcuts** - More navigation and action shortcuts
+- **📥 Profile Photo Downloader** - Download profile photos in bulk
+- **🌍 Localization Support** - Multi-language support for the popup and features
+- **💬 Feed Text Translation** - Translate feed text into multiple languages
+- **🛒 Chrome Web Store Publishing** - Make the extension available for easy installation via the Chrome Web Store
+- **🦊 Cross-Browser Compatibility** - Extend support to Firefox and other browsers
+- **📊 Analytics Dashboard** - Provide insights into your dating activity and extension usage
+- **⚡ Auto pass/like for Custom Filters** - Automatically pass or like profiles based on user-defined criteria
+- **🎨 Light/Dark mode Popup Theme Customization** - More options to customize the popup and interface appearance
 
 
 ## 🔐 Privacy and Security
