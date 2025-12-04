@@ -114,6 +114,24 @@ const DARK_MODE_STYLES = `
         stroke: none !important;
     }
 
+    /*============================================
+       MESSAGES - Dark background and light text
+       =========================================== */
+    .t659_29vzMkU6QQL2q0j,
+    .x8amgHNYP_nXx626A_lY {
+        color: #ffffff !important;
+    }
+
+    .WK2PEQwFZVjNdD26XECA {
+        border: 2px solid white !important;
+    }
+
+    [id="stack-icon/just-for-you"] path,
+    [id="stack-icon/just-for-you"] use,
+    [id="stack-icon/just-for-you"] g {
+        fill: #1a1a1a !important;
+    }
+
     /* ===========================================
        LIKES YOU PAGE - Card Fixes
        =========================================== */
@@ -157,7 +175,6 @@ const DARK_MODE_STYLES = `
     /* Buttons */
     button {
         background-color: #222 !important;
-        border: 1px solid #444 !important;
     }
 
     /* ===========================================
@@ -243,6 +260,13 @@ const DARK_MODE_STYLES = `
 
     .sliding-pagination-fade.left {
         background: linear-gradient(to left, rgba(26, 26, 26, 0), rgba(26, 26, 26, 1)) !important;
+    }
+
+    .yhiooHkKxDD3bSd9Svs4.s2IzO3FJ1CYcQrS7Kiwa:before {
+        background: linear-gradient(to left, #121212e7  0%, #22222236 100%) !important;
+    }
+    .yhiooHkKxDD3bSd9Svs4.Jd_Ct99A9ZvnQzJUn1bi:before {
+        background: linear-gradient(to right, #22222236  0%, #121212e7 100%) !important;
     }
 `;
 
