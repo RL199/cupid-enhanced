@@ -12,15 +12,7 @@
 
     // Hidden stacks to inject into the stacks menu
     const HIDDEN_STACKS_TO_INJECT = [
-        { id: 'CLIMATE_CHANGE', label: 'Climate Change' },
-        { id: 'MOST_QUESTIONS', label: 'Question Pros' },
-        { id: 'NEARBY', label: 'Nearby' },
-        { id: 'NEW_USERS', label: 'New Users' },
-        { id: 'PENPAL', label: 'Passport' },
-        { id: 'POPULAR', label: 'Popular' },
-        { id: 'PRO_CHOICE', label: 'Pro-Choice' },
-        { id: 'SUPERLIKES', label: 'SuperLikes' },
-        { id: 'VACCINATED', label: 'Vaccinated' }
+        { id: 'NEW_USERS', label: 'New Users' }
     ];
 
     // Listen for settings from isolated world
@@ -99,7 +91,7 @@
                     const existingStackIds = new Set(data.data.me.stacks.map(s => s.id));
                     // Use the first existing stack as a template for the structure
                     const templateStack = data.data.me.stacks[0];
-                    
+
                     if (templateStack) {
                         HIDDEN_STACKS_TO_INJECT.forEach(hiddenStack => {
                             if (!existingStackIds.has(hiddenStack.id)) {
