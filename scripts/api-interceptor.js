@@ -10,6 +10,19 @@
         likesCount: true
     };
 
+    // Hidden stacks to inject into the stacks menu
+    const HIDDEN_STACKS_TO_INJECT = [
+        { id: 'CLIMATE_CHANGE', label: 'Climate Change' },
+        { id: 'MOST_QUESTIONS', label: 'Question Pros' },
+        { id: 'NEARBY', label: 'Nearby' },
+        { id: 'NEW_USERS', label: 'New Users' },
+        { id: 'PENPAL', label: 'Passport' },
+        { id: 'POPULAR', label: 'Popular' },
+        { id: 'PRO_CHOICE', label: 'Pro-Choice' },
+        { id: 'SUPERLIKES', label: 'SuperLikes' },
+        { id: 'VACCINATED', label: 'Vaccinated' }
+    ];
+
     // Listen for settings from isolated world
     window.addEventListener('message', (event) => {
         if (event.source === window && event.data.type === 'SETTINGS_TO_MAIN') {
@@ -80,6 +93,26 @@
 
                 // Additional flags
                 data.data.me.hasIncognito = true;
+
+                // Inject hidden stacks into the stacks array if it exists
+                if (data.data.me.stacks && Array.isArray(data.data.me.stacks)) {
+                    const existingStackIds = new Set(data.data.me.stacks.map(s => s.id));
+                    // Use the first existing stack as a template for the structure
+                    const templateStack = data.data.me.stacks[0];
+                    
+                    if (templateStack) {
+                        HIDDEN_STACKS_TO_INJECT.forEach(hiddenStack => {
+                            if (!existingStackIds.has(hiddenStack.id)) {
+                                // Clone the template and modify the id
+                                const newStack = JSON.parse(JSON.stringify(templateStack));
+                                newStack.id = hiddenStack.id;
+                                // Keep __typename if it exists
+                                data.data.me.stacks.push(newStack);
+                                console.log('[Cupid Enhanced] Injected stack:', hiddenStack.id);
+                            }
+                        });
+                    }
+                }
 
                 modified = true;
             }

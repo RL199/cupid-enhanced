@@ -613,7 +613,6 @@ function enhanceDiscoverPage() {
 
         applyStylesToElements(DISCOVER_PAGE_ENHANCEMENTS);
         displayPhotoDatesOnImages();
-        injectHiddenStacks();
         setupRewindButton();
 
         clearTimeout(debounceTimer);
@@ -837,26 +836,27 @@ function displayPhotoDatesOnImages() {
     });
 }
 
-function injectHiddenStacks() {
-
-}
-
 // =============================================================================
 // Cupid Enhanced Section
 // =============================================================================
 
 async function saveVisitedProfile(userId) {
-    const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
-    const profiles = result[STORAGE_KEYS.visitedProfiles] || [];
+    try {
+        const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
+        const profiles = result[STORAGE_KEYS.visitedProfiles] || [];
 
-    //delete userId if it already exists to avoid duplicates
-    const existingIndex = profiles.indexOf(userId);
-    if (existingIndex !== -1) {
-        profiles.splice(existingIndex, 1);
+        //delete userId if it already exists to avoid duplicates
+        const existingIndex = profiles.indexOf(userId);
+        if (existingIndex !== -1) {
+            profiles.splice(existingIndex, 1);
+        }
+
+        profiles.push(userId);
+        await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
+    } catch (error) {
+        // Extension context may be invalidated after reload
+        console.log('[Cupid Enhanced] Could not save visited profile:', error.message);
     }
-
-    profiles.push(userId);
-    await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
 }
 
 function addCupidEnhancedSection() {
