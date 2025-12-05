@@ -4,10 +4,10 @@ const DEFAULT_SETTINGS = {
     unblurImages: true,
     likesCount: true,
     enhanceDiscoverPage: true,
-    enhanceLikesYouPage: true,
+    enhanceLikesYouPage: flase,
     blockPremiumAds: true,
     horizontalScroll: true,
-    darkMode: true
+    darkMode: false
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
