@@ -895,6 +895,11 @@ function createCupidSection() {
     const likesRemaining = localStorage.getItem(STORAGE_KEYS.likesRemaining) || 'Make first vote to display';
     const likesResetTime = localStorage.getItem(STORAGE_KEYS.likesResetTime) || 'Make first vote to display';
 
+    if(likesResetTime < Date.now()){
+        likesResetTime = 'Reset time passed, make a vote to update';
+        likesRemaining = 'Make vote to display';
+    }
+
     const content = document.createElement('div');
     content.className = 'dt-section-content';
     content.innerHTML = `
