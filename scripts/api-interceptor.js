@@ -60,6 +60,15 @@
             eligibleUpgrades: [{ eligibilityStatus: 2 }]
         };
 
+        // Inject Gatekeeper Checks (found in desktop_header_banner.js)
+        if (!me.gatekeeperChecks) {
+            me.gatekeeperChecks = {};
+        }
+        // Disable negative gatekeepers to hide banners
+        me.gatekeeperChecks.BILLING_WOES = false;
+        me.gatekeeperChecks.ALIST_DISCOUNT_MASTHEAD = false;
+        me.gatekeeperChecks.INTOYOU_MASTHEAD = true; // Enable 'Into You' feature if available
+
         if (!me.premiums) {
             me.premiums = {};
         }
@@ -114,7 +123,7 @@
         return modified;
     };
 
-    // --- Interceptor ---
+    // --- Response Interceptor ---
 
     const originalText = Response.prototype.text;
 
