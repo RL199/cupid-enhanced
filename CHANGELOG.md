@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Better Likes You Layout feature (new popup setting)
 
+### Changed
+- Local storage log of visited profiles now includes first photo URL, view date, name, age and location.
+- Dark mode improvements.
+- Default setting for dark mode and better likes you layout are off for new users.
+
 ## [1.0.0] - 2025-12-04
 
 ### Added
