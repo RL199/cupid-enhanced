@@ -117,10 +117,6 @@ const DARK_MODE_STYLES = `
     h1, h2, h3, h4, button {
         color: #ffffff !important;
     }
-    svg, path {
-        fill: #ffffff !important;
-        stroke: none !important;
-    }
 
     /*============================================
        MESSAGES - Dark background and light text
@@ -130,14 +126,14 @@ const DARK_MODE_STYLES = `
         color: #ffffff !important;
     }
 
-    .WK2PEQwFZVjNdD26XECA {
-        border: 2px solid white !important;
+    .dt-comment-fab svg path ,
+    .matchprofile-details-icon path,
+    .matchprofile-details svg path {
+        fill: #ffffff !important;
     }
 
-    [id="stack-icon/just-for-you"] path,
-    [id="stack-icon/just-for-you"] use,
-    [id="stack-icon/just-for-you"] g {
-        fill: #1a1a1a !important;
+    .WK2PEQwFZVjNdD26XECA {
+        border: 2px solid white !important;
     }
 
     /* ===========================================
