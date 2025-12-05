@@ -4,7 +4,7 @@ const DEFAULT_SETTINGS = {
     unblurImages: true,
     likesCount: true,
     enhanceDiscoverPage: true,
-    enhanceLikesYouPage: flase,
+    enhanceLikesYouPage: false,
     blockPremiumAds: true,
     horizontalScroll: true,
     darkMode: false
