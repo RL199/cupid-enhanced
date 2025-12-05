@@ -410,18 +410,22 @@ function setupPassButtonListener() {
         const actionButton = event.target.closest(SELECTORS.actionButton);
         if (actionButton) {
             resetPhotoDateDisplay();
+            resetLikesDataDisplay();
         }
     });
+}
+
+function resetLikesDataDisplay() {
+    const likesRemainingElement = document.getElementById('likes-remaining');
+    const likesResetTimeElement = document.getElementById('likes-reset-time');
+    if (likesRemainingElement) likesRemainingElement.textContent = 'Likes Remaining: Loading...';
+    if (likesResetTimeElement) likesResetTimeElement.textContent = 'Next Likes Reset: Loading...';
 }
 
 function resetPhotoDateDisplay() {
     const newestElement = document.getElementById('newest-photo-date');
     const oldestElement = document.getElementById('oldest-photo-date');
     setPhotoDateText(newestElement, oldestElement, 'Loading...');
-    const likesRemainingElement = document.getElementById('likes-remaining');
-    const likesResetTimeElement = document.getElementById('likes-reset-time');
-    if (likesRemainingElement) likesRemainingElement.textContent = 'Likes Remaining: Loading...';
-    if (likesResetTimeElement) likesResetTimeElement.textContent = 'Next Likes Reset: Loading...';
 }
 
 // =============================================================================
