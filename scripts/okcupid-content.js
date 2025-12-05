@@ -649,8 +649,11 @@ function setupRewindButton() {
 
         // Find the most recent profile that is NOT the current one
         for (let i = profiles.length - 1; i >= 0; i--) {
-            if (profiles[i] !== currentUserId) {
-                targetId = profiles[i];
+            const entry = profiles[i];
+            const id = (typeof entry === 'object' && entry !== null) ? entry.userId : entry;
+
+            if (id !== currentUserId) {
+                targetId = id;
                 break;
             }
         }
@@ -723,8 +726,6 @@ async function fetchAllImageMetadata() {
         imageMetadataCache = {};
         lastFetchedUserId = currentUserId;
     }
-
-    console.log('[Cupid Enhanced] Fetching metadata for', photoUrls.length, 'images');
 
     try {
         const results = await Promise.all(
@@ -840,18 +841,18 @@ function displayPhotoDatesOnImages() {
 // Cupid Enhanced Section
 // =============================================================================
 
-async function saveVisitedProfile(userId) {
+async function saveVisitedProfile(userId, photoUrl, name, age, location) {
     try {
         const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
-        const profiles = result[STORAGE_KEYS.visitedProfiles] || [];
+        let profiles = result[STORAGE_KEYS.visitedProfiles] || [];
 
-        //delete userId if it already exists to avoid duplicates
-        const existingIndex = profiles.indexOf(userId);
-        if (existingIndex !== -1) {
-            profiles.splice(existingIndex, 1);
-        }
+        // Remove existing entry for this user (handling both string and object formats)
+        profiles = profiles.filter(p => {
+            const id = (typeof p === 'object' && p !== null) ? p.userId : p;
+            return id !== userId;
+        });
 
-        profiles.push(userId);
+        profiles.push({ userId, photoUrl, name, age, location, timestamp: Date.now() });
         await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
     } catch (error) {
         // Extension context may be invalidated after reload
@@ -865,7 +866,23 @@ function addCupidEnhancedSection() {
 
     const currentUserId = getCurrentUserId();
     if (currentUserId) {
-        saveVisitedProfile(currentUserId);
+        const photoUrls = getDiscoverPagePhotoUrls();
+        const firstPhotoUrl = photoUrls.length > 0 ? getBaseImageUrl(photoUrls[0]) : null;
+
+        const nameElement = document.querySelector('.card-content-header__text');
+        const name = nameElement ? nameElement.textContent.trim() : null;
+
+        const locationElement = document.querySelector('.card-content-header__location');
+        let age = null;
+        let location = null;
+        if (locationElement) {
+            const text = locationElement.textContent.trim();
+            const parts = text.split('•').map(s => s.trim());
+            if (parts.length > 0) age = parts[0];
+            if (parts.length > 1) location = parts[1];
+        }
+
+        saveVisitedProfile(currentUserId, firstPhotoUrl, name, age, location);
     }
 
     const needsFetch = currentUserId && currentUserId !== lastFetchedUserId;
