@@ -43,8 +43,6 @@
         if (!data?.data?.me) return false;
 
         const me = data.data.me;
-        me.hasIncognito = true;
-        me.isIncognito = true;
         me.isAlist = true;
         me.isAdFree = true;
 
@@ -74,8 +72,8 @@
         }
         // Enable all premium features to bypass paywalls
         me.premiums.VIEW_VOTES = true; // View who voted for you
-        me.premiums.ALIST_PREMIUM = true; //Display Alist Premium badge
-        me.premiums.ALIST_PREMIUM_PLUS = true;
+        me.premiums.ALIST_PREMIUM = true;
+        me.premiums.ALIST_PREMIUM_PLUS = true; //Display Premium Plus badge
         me.premiums.ALIST_BASIC = true;
 
         // Premium features found in module 88074 (lowercase and uppercase variants)
@@ -94,9 +92,7 @@
             'question_answers', 'QUESTION_ANSWERS',
             'likes_list_sort', 'LIKES_LIST_SORT',
             'priority_likes', 'PRIORITY_LIKES',
-            'read_receipts', 'READ_RECEIPTS',
-            'boost', 'BOOST',
-            'incognito', 'INCOGNITO'
+            'read_receipts', 'READ_RECEIPTS'
         ];
 
         features.forEach(feature => {
