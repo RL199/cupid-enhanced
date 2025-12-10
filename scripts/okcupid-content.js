@@ -59,23 +59,22 @@ const DISCOVER_PAGE_ENHANCEMENTS = [
     { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
 ];
 
-const STACK_SLUGS = {
-    'JUST_FOR_YOU': 'recommended',
-    'POPULAR': 'popular',
-    'NEW_USERS': 'new-users',
-    'ONLINE_NOW': 'online',
-    'MOST_QUESTIONS': 'questions',
-    'MATCH_PERCENTAGE': 'match-percentage',
-    'NEARBY': 'nearby',
-    'PENPAL': 'passport',
-    'SUPERLIKES': 'superlikes',
-    'STANDOUTS': 'cupids-picks',
-    'VACCINATED': 'vaccinated',
-    'PRO_CHOICE': 'pro-choice',
-    'CLIMATE_CHANGE': 'climate-change',
-    'BOOST_AD': 'boost',
-    'PROMOTED_QUESTION': 'promoted'
-};
+const PHOTO_DATE_LABEL_STYLES = `
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+`;
 
 const BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
 
@@ -835,22 +834,7 @@ async function displayPhotoDatesOnFullscreenImages() {
             if (!label) {
                 label = document.createElement('div');
                 label.className = 'cupid-photo-date-fullscreen';
-                label.style.cssText = `
-                    position: absolute;
-                    bottom: 10px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 12px;
-                    font-size: 12px;
-                    font-weight: bold;
-                    pointer-events: none;
-                    z-index: 100;
-                    white-space: nowrap;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                `;
+                label.style.cssText = PHOTO_DATE_LABEL_STYLES;
                 buttonEl.style.position = 'relative';
                 buttonEl.appendChild(label);
             }
