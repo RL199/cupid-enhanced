@@ -462,7 +462,17 @@ function updateElementText(id, text) {
 
 function setupHorizontalScroll() {
     const scrollHandler = (event) => {
-        if (!currentSettings.horizontalScroll || event.deltaY !== 0) return;
+        if (!currentSettings.horizontalScroll) return;
+
+        // Check if we're in the fullscreen photo modal
+        const fullscreenModal = document.querySelector('#OkModal .photo-overlay-images');
+        if (fullscreenModal) {
+            handleFullscreenPhotoScroll(event);
+            return;
+        }
+
+        // Default discover page horizontal scroll
+        if (event.deltaY !== 0) return;
 
         const button = event.deltaX < 0
             ? document.querySelector(SELECTORS.prevButton)
@@ -475,6 +485,25 @@ function setupHorizontalScroll() {
     observers.horizontalScroll = {
         disconnect: () => window.removeEventListener('wheel', scrollHandler)
     };
+}
+
+function handleFullscreenPhotoScroll(event) {
+    // Only handle horizontal scroll in fullscreen modal
+    if (event.deltaX === 0) return;
+
+    event.preventDefault();
+
+    // Emulate left/right arrow key press
+    const keyCode = event.deltaX > 0 ? 'ArrowRight' : 'ArrowLeft';
+
+    const keyEvent = new KeyboardEvent('keydown', {
+        key: keyCode,
+        code: keyCode,
+        bubbles: true,
+        cancelable: true
+    });
+
+    document.dispatchEvent(keyEvent);
 }
 
 // =============================================================================
