@@ -60,11 +60,14 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 ### 🔒 Privacy & Photos
 - **👁️ Reveal Who Liked You** - View clear, unblurred profile pictures of all users who viewed or liked you and sort the list
 - **💯 Display Real Like Numbers** - See your actual like count instead of "99+ interested"
-- **📅 Photo Dates** - See when profile photos were uploaded on the discover page
+- **📅 Photo Dates** - See when profile photos were uploaded on the discover page and fullscreen photo viewer
+- **💌 See All Intros** - View all intro messages you've received
+- **❓ See All Question Answers** - View all question answers on profiles
 
 ### 🎨 Layout & Navigation
 - **📐 Better Discover Layout** - Expanded page width with centered layout, photo dates, and likes remaining counter
-- **🖱️ Horizontal Scroll** - Use mouse wheel to navigate through profiles horizontally
+- **💕 Better Likes You Layout** - Improved grid layout for the likes you page
+- **🖱️ Horizontal Scroll** - Use mouse wheel to navigate through profiles on discover page and photos in fullscreen viewer
 - **🚫 Hide Promotions** - Clean interface without premium upgrade ads
 - **🏆 Premium plus Badge** - Display premium plus badge (visual only)
 - **⌨️ Shortcuts** - Use `Ctrl+Enter` to send intro messages
@@ -143,13 +146,9 @@ The extension features a beautiful dark-themed popup with gradient colors matchi
 ## 🗺️ Roadmap
 
 ### Planned Features
-
-- **🌟 Spotlight Indicator** ([#4](https://github.com/RL199/cupid-enhanced/issues/4)) - See if a user in discover page is from Spotlight
-- **💝 Mutual Like Indicator** ([#5](https://github.com/RL199/cupid-enhanced/issues/5)) - See if users in discover page have already liked you
 - **📂 Passed Profiles Archive** - Access profiles you've passed on discover page
 - **🤖 AI Intro Message Generator** - Generate personalized intro messages using AI
 - **🌑 Enhanced Dark Mode** - Full dark mode support across all OkCupid pages
-- **📐 Widen Likes You Page Layout** - Similar to discover page layout enhancement
 - **⌨️ Additional Keyboard Shortcuts** - More navigation and action shortcuts
 - **📥 Profile Photo Downloader** - Download profile photos in bulk
 - **🌍 Localization Support** - Multi-language support for the popup and features

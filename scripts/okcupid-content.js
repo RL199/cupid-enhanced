@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
     unblurImages: true,
     likesCount: true,
     enhanceDiscoverPage: true,
+    enhanceLikesYouPage: true,
     blockPremiumAds: true,
     horizontalScroll: true,
     darkMode: true
@@ -58,41 +59,22 @@ const DISCOVER_PAGE_ENHANCEMENTS = [
     { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
 ];
 
-const HIDDEN_STACKS = [
-    { id: 'BOOST_AD', label: 'Boost' },
-    { id: 'CLIMATE_CHANGE', label: 'Climate Change' },
-    { id: 'JUST_FOR_YOU', label: 'Recommended' },
-    { id: 'MATCH_PERCENTAGE', label: 'Match %' },
-    { id: 'MOST_QUESTIONS', label: 'Question Pros' },
-    { id: 'NEARBY', label: 'Nearby' },
-    { id: 'NEW_USERS', label: 'New Users' },
-    { id: 'ONLINE_NOW', label: 'Online Now' },
-    { id: 'PENPAL', label: 'Passport' },
-    { id: 'POPULAR', label: 'Popular' },
-    { id: 'PROMOTED_QUESTION', label: 'Promoted' },
-    { id: 'PRO_CHOICE', label: 'Pro-Choice' },
-    { id: 'STANDOUTS', label: 'Cupid’s Picks' },
-    { id: 'SUPERLIKES', label: 'SuperLikes' },
-    { id: 'VACCINATED', label: 'Vaccinated' }
-];
-
-const STACK_SLUGS = {
-    'JUST_FOR_YOU': 'recommended',
-    'POPULAR': 'popular',
-    'NEW_USERS': 'new-users',
-    'ONLINE_NOW': 'online',
-    'MOST_QUESTIONS': 'questions',
-    'MATCH_PERCENTAGE': 'match-percentage',
-    'NEARBY': 'nearby',
-    'PENPAL': 'passport',
-    'SUPERLIKES': 'superlikes',
-    'STANDOUTS': 'cupids-picks',
-    'VACCINATED': 'vaccinated',
-    'PRO_CHOICE': 'pro-choice',
-    'CLIMATE_CHANGE': 'climate-change',
-    'BOOST_AD': 'boost',
-    'PROMOTED_QUESTION': 'promoted'
-};
+const PHOTO_DATE_LABEL_STYLES = `
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+`;
 
 const BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
 
@@ -110,27 +92,24 @@ const DARK_MODE_STYLES = `
     h1, h2, h3, h4, button {
         color: #ffffff !important;
     }
-    svg, path {
-        fill: #ffffff !important;
-        stroke: none !important;
-    }
 
     /*============================================
        MESSAGES - Dark background and light text
        =========================================== */
     .t659_29vzMkU6QQL2q0j,
-    .x8amgHNYP_nXx626A_lY {
+    .x8amgHNYP_nXx626A_lY,
+    .quickmatch-blank-body {
         color: #ffffff !important;
+    }
+
+    .dt-comment-fab svg path ,
+    .matchprofile-details-icon path,
+    .matchprofile-details svg path {
+        fill: #ffffff !important;
     }
 
     .WK2PEQwFZVjNdD26XECA {
         border: 2px solid white !important;
-    }
-
-    [id="stack-icon/just-for-you"] path,
-    [id="stack-icon/just-for-you"] use,
-    [id="stack-icon/just-for-you"] g {
-        fill: #1a1a1a !important;
     }
 
     /* ===========================================
@@ -291,6 +270,60 @@ const DARK_MODE_STYLES = `
     }
 `;
 
+const LIKES_YOU_STYLES = `
+    /* Expand container width */
+    .userrows-content,
+    .userrows-card-container,
+    .Q8o8ldWxQdXz5zE0jhgx,
+    .ogFfHbz4Rbttu2zVAYGe {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    .userrows-content-main {
+        max-width: 100% !important;
+        width: 100% !important;
+        flex: 1 1 auto !important;
+        margin-inline-start: 0 !important;
+    }
+
+    .userrows-content-sort{
+        max-width: 100% !important;
+        position: center !important;
+        justify-items: center !important;
+    }
+
+    /* Override JS Grid/Masonry Layout */
+    .incoming-likes-voting-list > div > div,
+    .jBtTsboeLJtQL55nQsEi > div {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+        height: auto !important;
+        position: relative !important;
+        gap: 10px !important;
+        padding-bottom: 20px !important;
+        justify-content: center !important;
+        margin: 0 auto !important;
+    }
+
+    /* Reset individual card positioning */
+    .incoming-likes-voting-list > div > div > div,
+    .userrows-main > div > div > div {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Ensure inner content fills the card */
+    .incoming-likes-voting-list > div > div > div a,
+    .userrows-main > div > div > div a {
+        width: 100% !important;
+        display: block !important;
+    }
+`;
+
 // =============================================================================
 // State
 // =============================================================================
@@ -349,18 +382,38 @@ function setupPassButtonListener() {
         const actionButton = event.target.closest(SELECTORS.actionButton);
         if (actionButton) {
             resetPhotoDateDisplay();
+            resetLikesDataDisplay();
         }
     });
+}
+
+function resetLikesDataDisplay() {
+    const likesRemainingElement = document.getElementById('likes-remaining');
+    const likesResetTimeElement = document.getElementById('likes-reset-time');
+    if (likesRemainingElement) likesRemainingElement.textContent = 'Likes Remaining: Loading...';
+    if (likesResetTimeElement) likesResetTimeElement.textContent = 'Next Likes Reset: Loading...';
 }
 
 function resetPhotoDateDisplay() {
     const newestElement = document.getElementById('newest-photo-date');
     const oldestElement = document.getElementById('oldest-photo-date');
     setPhotoDateText(newestElement, oldestElement, 'Loading...');
-    const likesRemainingElement = document.getElementById('likes-remaining');
-    const likesResetTimeElement = document.getElementById('likes-reset-time');
-    if (likesRemainingElement) likesRemainingElement.textContent = 'Likes Remaining: Loading...';
-    if (likesResetTimeElement) likesResetTimeElement.textContent = 'Next Likes Reset: Loading...';
+}
+
+// =============================================================================
+// Style Injection Helpers
+// =============================================================================
+
+function injectStyles(id, css) {
+    if (document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = css;
+    document.head.appendChild(style);
+}
+
+function removeStyles(id) {
+    document.getElementById(id)?.remove();
 }
 
 // =============================================================================
@@ -368,16 +421,11 @@ function resetPhotoDateDisplay() {
 // =============================================================================
 
 function enableDarkMode() {
-    if (document.getElementById('cupid-dark-mode-styles')) return;
-
-    const style = document.createElement('style');
-    style.id = 'cupid-dark-mode-styles';
-    style.textContent = DARK_MODE_STYLES;
-    document.head.appendChild(style);
+    injectStyles('cupid-dark-mode-styles', DARK_MODE_STYLES);
 }
 
 function disableDarkMode() {
-    document.getElementById('cupid-dark-mode-styles')?.remove();
+    removeStyles('cupid-dark-mode-styles');
 }
 
 // =============================================================================
@@ -414,7 +462,17 @@ function updateElementText(id, text) {
 
 function setupHorizontalScroll() {
     const scrollHandler = (event) => {
-        if (!currentSettings.horizontalScroll || event.deltaY !== 0) return;
+        if (!currentSettings.horizontalScroll) return;
+
+        // Check if we're in the fullscreen photo modal
+        const fullscreenModal = document.querySelector('#OkModal .photo-overlay-images');
+        if (fullscreenModal) {
+            handleFullscreenPhotoScroll(event);
+            return;
+        }
+
+        // Default discover page horizontal scroll
+        if (event.deltaY !== 0) return;
 
         const button = event.deltaX < 0
             ? document.querySelector(SELECTORS.prevButton)
@@ -427,6 +485,25 @@ function setupHorizontalScroll() {
     observers.horizontalScroll = {
         disconnect: () => window.removeEventListener('wheel', scrollHandler)
     };
+}
+
+function handleFullscreenPhotoScroll(event) {
+    // Only handle horizontal scroll in fullscreen modal
+    if (event.deltaX === 0) return;
+
+    event.preventDefault();
+
+    // Emulate left/right arrow key press
+    const keyCode = event.deltaX > 0 ? 'ArrowRight' : 'ArrowLeft';
+
+    const keyEvent = new KeyboardEvent('keydown', {
+        key: keyCode,
+        code: keyCode,
+        bubbles: true,
+        cancelable: true
+    });
+
+    document.dispatchEvent(keyEvent);
 }
 
 // =============================================================================
@@ -475,6 +552,7 @@ function applySettings() {
 function setupObservers() {
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
+        { key: 'likesYouPage', setting: 'enhanceLikesYouPage', fn: enhanceLikesYouPage },
         { key: 'premiumAds', setting: 'blockPremiumAds', fn: blockPremiumAds }
     ];
 
@@ -487,6 +565,23 @@ function setupObservers() {
     if (currentSettings.horizontalScroll) {
         setupHorizontalScroll();
     }
+
+    // Always observe for fullscreen photo overlay (works on all pages)
+    observers.fullscreenPhotos = setupFullscreenPhotoObserver();
+}
+
+function setupFullscreenPhotoObserver() {
+    let debounceTimer = null;
+
+    return createBodyObserver(() => {
+        const photoOverlay = document.querySelector('#OkModal .photo-overlay-images');
+        if (!photoOverlay) return;
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            displayPhotoDatesOnFullscreenImages();
+        }, 100);
+    });
 }
 
 function createBodyObserver(callback) {
@@ -540,45 +635,20 @@ function enhanceDiscoverPage() {
 
         applyStylesToElements(DISCOVER_PAGE_ENHANCEMENTS);
         displayPhotoDatesOnImages();
-        injectHiddenStacks();
-        setupRewindButton();
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(addCupidEnhancedSection, 300);
     });
 }
 
-function setupRewindButton() {
-    const rewindButton = document.querySelector('.desktop-dt-top-rewind');
-    if (!rewindButton || rewindButton.dataset.cupidRewindAttached) return;
+function enhanceLikesYouPage() {
+    if (!currentSettings.enhanceLikesYouPage) return;
 
-    rewindButton.dataset.cupidRewindAttached = 'true';
+    injectStyles('cupid-likes-you-styles', LIKES_YOU_STYLES);
 
-    rewindButton.addEventListener('click', async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-
-        const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
-        const profiles = result[STORAGE_KEYS.visitedProfiles] || [];
-        const currentUserId = getCurrentUserId();
-
-        let targetId = null;
-
-        // Find the most recent profile that is NOT the current one
-        for (let i = profiles.length - 1; i >= 0; i--) {
-            if (profiles[i] !== currentUserId) {
-                targetId = profiles[i];
-                break;
-            }
-        }
-
-        if (targetId) {
-            window.location.href = `https://www.okcupid.com/profile/${targetId}`;
-        } else {
-            console.log('[Cupid Enhanced] No previous profile found in history.');
-        }
-    }, true);
+    return {
+        disconnect: () => removeStyles('cupid-likes-you-styles')
+    };
 }
 
 function applyStylesToElements(enhancements) {
@@ -641,8 +711,6 @@ async function fetchAllImageMetadata() {
         imageMetadataCache = {};
         lastFetchedUserId = currentUserId;
     }
-
-    console.log('[Cupid Enhanced] Fetching metadata for', photoUrls.length, 'images');
 
     try {
         const results = await Promise.all(
@@ -754,26 +822,80 @@ function displayPhotoDatesOnImages() {
     });
 }
 
-function injectHiddenStacks() {
+async function displayPhotoDatesOnFullscreenImages() {
+    const photoOverlay = document.querySelector('#OkModal .photo-overlay-images');
+    if (!photoOverlay) return;
 
+    const slides = photoOverlay.querySelectorAll('[aria-label^="Slide image"]');
+
+    for (const slide of slides) {
+        const imageContainer = slide.querySelector('div[class*="Yb6VSqG3RppfEoug5fci"]');
+        if (!imageContainer) continue;
+
+        const imgEl = imageContainer.querySelector('img[src*="pictures.match.com"]');
+        if (!imgEl) continue;
+
+        // Get the button that contains the image
+        const buttonEl = imgEl.closest('button');
+        if (!buttonEl) continue;
+
+        const url = getBaseImageUrl(imgEl.src);
+
+        // Fetch metadata if not already cached
+        if (!imageMetadataCache[url]) {
+            const lastModified = await fetchImageLastModified(imgEl.src);
+            if (lastModified) {
+                imageMetadataCache[url] = lastModified;
+            }
+        }
+
+        const lastModified = imageMetadataCache[url];
+
+        if (lastModified) {
+            const date = new Date(lastModified);
+            const dateString = date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            let label = buttonEl.querySelector('.cupid-photo-date-fullscreen');
+            if (!label) {
+                label = document.createElement('div');
+                label.className = 'cupid-photo-date-fullscreen';
+                label.style.cssText = PHOTO_DATE_LABEL_STYLES;
+                buttonEl.style.position = 'relative';
+                buttonEl.appendChild(label);
+            }
+
+            if (label.textContent !== dateString) {
+                label.textContent = dateString;
+            }
+        }
+    }
 }
 
 // =============================================================================
 // Cupid Enhanced Section
 // =============================================================================
 
-async function saveVisitedProfile(userId) {
-    const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
-    const profiles = result[STORAGE_KEYS.visitedProfiles] || [];
+async function saveVisitedProfile(userId, photoUrl, name, age, location) {
+    try {
+        const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
+        let profiles = result[STORAGE_KEYS.visitedProfiles] || [];
 
-    //delete userId if it already exists to avoid duplicates
-    const existingIndex = profiles.indexOf(userId);
-    if (existingIndex !== -1) {
-        profiles.splice(existingIndex, 1);
+        // Remove existing entry for this user (handling both string and object formats)
+        profiles = profiles.filter(p => {
+            const id = (typeof p === 'object' && p !== null) ? p.userId : p;
+            return id !== userId;
+        });
+
+        profiles.push({ userId, photoUrl, name, age, location, timestamp: Date.now() });
+        await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
+    } catch (error) {
+        // Extension context may be invalidated after reload
+        console.log('[Cupid Enhanced] Could not save visited profile:', error.message);
     }
-
-    profiles.push(userId);
-    await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
 }
 
 function addCupidEnhancedSection() {
@@ -782,7 +904,23 @@ function addCupidEnhancedSection() {
 
     const currentUserId = getCurrentUserId();
     if (currentUserId) {
-        saveVisitedProfile(currentUserId);
+        const photoUrls = getDiscoverPagePhotoUrls();
+        const firstPhotoUrl = photoUrls.length > 0 ? getBaseImageUrl(photoUrls[0]) : null;
+
+        const nameElement = document.querySelector('.card-content-header__text');
+        const name = nameElement ? nameElement.textContent.trim() : null;
+
+        const locationElement = document.querySelector('.card-content-header__location');
+        let age = null;
+        let location = null;
+        if (locationElement) {
+            const text = locationElement.textContent.trim();
+            const parts = text.split('•').map(s => s.trim());
+            if (parts.length > 0) age = parts[0];
+            if (parts.length > 1) location = parts[1];
+        }
+
+        saveVisitedProfile(currentUserId, firstPhotoUrl, name, age, location);
     }
 
     const needsFetch = currentUserId && currentUserId !== lastFetchedUserId;
@@ -807,6 +945,11 @@ function createCupidSection() {
 
     const likesRemaining = localStorage.getItem(STORAGE_KEYS.likesRemaining) || 'Make first vote to display';
     const likesResetTime = localStorage.getItem(STORAGE_KEYS.likesResetTime) || 'Make first vote to display';
+
+    if (likesResetTime < Date.now()) {
+        likesResetTime = 'Reset time passed, make a vote to update';
+        likesRemaining = 'Make vote to display';
+    }
 
     const content = document.createElement('div');
     content.className = 'dt-section-content';

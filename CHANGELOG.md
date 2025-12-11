@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-04
+
+### Added
+- Better Likes You Layout feature (new popup setting)
+- Display photos dates on fullscreen profile photos view.
+- See all intros you've recieved.
+- See all Question answers on profiles.
+- horizontal scroll support for full profile photos view using mouse wheel.
+
+### Changed
+- Local storage log of visited profiles now includes first photo URL, view date, name, age and location.
+- Dark mode improvements.
+- Default setting for dark mode and better likes you layout are off for new users.
+- Updated rewind button to work as original site behavior (go back to previous profile in discover).
+
 ## [1.0.0] - 2025-12-04
 
 ### Added

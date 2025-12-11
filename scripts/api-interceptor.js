@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    console.log('###API interceptor injected###');
+    console.log('###Cupid Enhanced: API Interceptor Loaded###');
 
     const SETTINGS_KEY = 'cupidEnhancedSettings';
     let settings = {
@@ -20,6 +20,116 @@
     // Request settings immediately
     window.postMessage({ type: 'REQUEST_SETTINGS' }, '*');
 
+    // --- Handlers ---
+
+    const handleLikes = (data) => {
+        // fetch likes remaining count
+        if (data?.data?.userVote?.likesRemaining != null) {
+            window.postMessage({
+                type: 'LIKES_REMAINING_COUNT',
+                count: data.data.userVote.likesRemaining
+            }, '*');
+        }
+        // fetch likes remaining reset time
+        if (data?.data?.userVote?.likesCapResetTime != null) {
+            window.postMessage({
+                type: 'LIKES_RESET_TIME',
+                time: data.data.userVote.likesCapResetTime
+            }, '*');
+        }
+    };
+
+    const handlePremium = (data) => {
+        if (!data?.data?.me) return false;
+
+        const me = data.data.me;
+        me.isAlist = true;
+        me.isAdFree = true;
+
+        // Inject Billing Eligibility to hide upsells
+        if (!me.billingSubscriptionUpgradeEligibility) {
+            me.billingSubscriptionUpgradeEligibility = {};
+        }
+        // 2 = INELIGIBLE (hides 'Upgrade' buttons)
+        me.billingSubscriptionUpgradeEligibility.premium = {
+            eligibleUpgrades: [{ eligibilityStatus: 2 }]
+        };
+        me.billingSubscriptionUpgradeEligibility.premiumPlus = {
+            eligibleUpgrades: [{ eligibilityStatus: 2 }]
+        };
+
+        // Inject Gatekeeper Checks (found in desktop_header_banner.js)
+        if (!me.gatekeeperChecks) {
+            me.gatekeeperChecks = {};
+        }
+        // Disable negative gatekeepers to hide banners
+        me.gatekeeperChecks.BILLING_WOES = false;
+        me.gatekeeperChecks.ALIST_DISCOUNT_MASTHEAD = false;
+        me.gatekeeperChecks.INTOYOU_MASTHEAD = true; // Enable 'Into You' feature if available
+
+        if (!me.premiums) {
+            me.premiums = {};
+        }
+        // Enable all premium features to bypass paywalls
+        me.premiums.VIEW_VOTES = true; // View who voted for you
+        me.premiums.ALIST_BASIC = true;
+        me.premiums.ALIST_PREMIUM = true;
+        me.premiums.ALIST_PREMIUM_PLUS = true; //Display Premium Plus badge
+
+        me.premiums.ADFREE = true; // Ad Free experience
+        me.premiums.INTROS = true; // Access to Intros
+        me.premiums.INCOGNITO_BUNDLE = true; // Incognito mode
+        me.premiums.UNLIMITED_REWINDS = true; // Unlimited rewinds
+        me.premiums.READ_RECEIPTS = true; // Read receipts for messages
+        me.premiums.SEE_PUBLIC_QUESTIONS = true; // See public question answers
+        me.premiums.__typename = 'Premiums';
+
+
+        // Premium features found in module 88074 (lowercase and uppercase variants)
+        const features = [
+            'intoyou', 'INTO_YOU',
+            'comfree', 'ad_free', 'AD_FREE', 'ADFREE',
+            'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
+            'intros', 'INTROS',
+            'dealbreakers', 'DEALBREAKERS',
+            'see_more_people',
+            'questions', 'QUESTIONS',
+            'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
+            'rewind', 'REWIND',
+            'question_search', 'QUESTION_SEARCH',
+            'who_likes_you', 'see_who_likes_you', 'SEE_WHO_LIKES_YOU',
+            'question_answers', 'QUESTION_ANSWERS',
+            'likes_list_sort', 'LIKES_LIST_SORT',
+            'priority_likes', 'PRIORITY_LIKES',
+            'read_receipts', 'READ_RECEIPTS'
+        ];
+
+        features.forEach(feature => {
+            me.premiums[feature] = true;
+        });
+
+        return true;
+    };
+
+    const handleUnblur = (data) => {
+        if (!settings.unblurImages) return false;
+        let modified = false;
+        const traverse = (obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            if (obj.primaryImage && obj.primaryImageBlurred) {
+                obj.primaryImageBlurred = obj.primaryImage;
+                modified = true;
+            }
+            for (const key in obj) {
+                traverse(obj[key]);
+            }
+        };
+        traverse(data);
+        return modified;
+    };
+
+    // --- Response Interceptor ---
+
     const originalText = Response.prototype.text;
 
     Response.prototype.text = async function () {
@@ -32,81 +142,18 @@
             const data = JSON.parse(text);
             let modified = false;
 
-            //fetch likes remaining count
-            if (data?.data?.userVote?.likesRemaining != null) {
-                // send chrome message to content script
-                window.postMessage({
-                    type: 'LIKES_REMAINING_COUNT',
-                    count: data.data.userVote.likesRemaining
-                }, '*');
-            }
-            // fetch likes remaining reset time
-            if (data?.data?.userVote?.likesCapResetTime != null) {
-                // send chrome message to content script
-                window.postMessage({
-                    type: 'LIKES_RESET_TIME',
-                    time: data.data.userVote.likesCapResetTime
-                }, '*');
-            }
-
-            // Inject Premium Status
-            if (data?.data?.me) {
-                if (!data.data.me.premiums) {
-                    data.data.me.premiums = {};
-                }
-                // Enable all premium features to bypass paywalls
-                data.data.me.premiums.VIEW_VOTES = true;  // see who was interested in you
-                data.data.me.premiums.ALIST_PREMIUM = true; // Display premium badge
-                data.data.me.premiums.ALIST_PREMIUM_PLUS = true; // Display premium plus badge
-
-                // Premium features found in module 88074
-                data.data.me.premiums.intoyou = true; // See who likes you
-                data.data.me.premiums.comfree = true; // Ad-free
-                data.data.me.premiums.unlimited_likes = true;
-                data.data.me.premiums.intros = true;
-                data.data.me.premiums.dealbreakers = true;
-                data.data.me.premiums.see_more_people = true;
-                data.data.me.premiums.questions = true;
-                data.data.me.premiums.superlikes = true;
-                data.data.me.premiums.rewind = true;
-                data.data.me.premiums.question_search = true;
-                data.data.me.premiums.who_likes_you = true;
-                data.data.me.premiums.question_answers = true;
-                data.data.me.premiums.likes_list_sort = true;
-                data.data.me.premiums.priority_likes = true;
-                data.data.me.premiums.read_receipts = true;
-                data.data.me.premiums.boost = true;
-                data.data.me.premiums.incognito = true;
-
-                // Additional flags
-                data.data.me.hasIncognito = true;
-
-                modified = true;
-            }
-
-            // Recursively unblur all images in the response
-            if (settings.unblurImages) {
-                const unblur = (obj) => {
-                    if (!obj || typeof obj !== 'object') return;
-                    if (obj.primaryImage && obj.primaryImageBlurred) {
-                        obj.primaryImageBlurred = obj.primaryImage;
-                        modified = true;
-                    }
-                    for (const key in obj) {
-                        if (obj[key] && typeof obj[key] === 'object') {
-                            unblur(obj[key]);
-                        }
-                    }
-                };
-                unblur(data);
-            }
+            // Run handlers
+            handleLikes(data);
+            if (handlePremium(data)) modified = true;
+            if (handleUnblur(data)) modified = true;
 
             if (modified) {
                 return JSON.stringify(data);
             }
 
             return text;
-        } catch {
+        } catch (e) {
+            console.error('Interceptor error:', e);
             return text;
         }
     };
