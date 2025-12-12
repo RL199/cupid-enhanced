@@ -766,6 +766,7 @@ function updatePhotoDateDisplay() {
 }
 
 function setPhotoDateText(newestEl, oldestEl, status) {
+    if (!newestEl || !oldestEl) return;
     newestEl.textContent = `Newest Photo Upload: ${status}`;
     oldestEl.textContent = `Oldest Photo Upload: ${status}`;
 }
