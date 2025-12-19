@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.1]
 
+### Added
+- Bypass user photo requirements to unlock functions that require having photos, like sending likes and passes.
+
 ### Fixed
 - Fix issue with photo date display on fullscreen profile photos view not displaying correctly.
 - Fix minor bug when scrolling horizontally in fullscreen profile photos view causing layout issues.

@@ -45,6 +45,8 @@
         const me = data.data.me;
         me.isAlist = true;
         me.isAdFree = true;
+        me.isIncognito = true; // Incognito mode (not sure if this does anything)
+        me.hasMetPhotoRequirements = true; // Bypass user photo requirements
 
         // Inject Billing Eligibility to hide upsells
         if (!me.billingSubscriptionUpgradeEligibility) {
@@ -62,10 +64,21 @@
         if (!me.gatekeeperChecks) {
             me.gatekeeperChecks = {};
         }
-        // Disable negative gatekeepers to hide banners
+        // Disable negative gatekeepers to hide banners/upsells
         me.gatekeeperChecks.BILLING_WOES = false;
         me.gatekeeperChecks.ALIST_DISCOUNT_MASTHEAD = false;
-        me.gatekeeperChecks.INTOYOU_MASTHEAD = true; // Enable 'Into You' feature if available
+        me.gatekeeperChecks.INTOYOU_MASTHEAD = true; // Enable 'Into You' feature
+
+        // Disable paywall gatekeepers
+        me.gatekeeperChecks.DISCOVER_LIKESCAP = false;
+        me.gatekeeperChecks.FULLPROFILE_LIKESCAP = false;
+        me.gatekeeperChecks.DISCOVER_SUPERLIKE_UPGRADEMODAL = false;
+        me.gatekeeperChecks.LIKES_SEEWHOLIKESYOU_CTA = false;
+        me.gatekeeperChecks.LIKES_LIKESYOU_BLURTAP = false;
+        me.gatekeeperChecks.LIKES_LIKESYOU_SCROLL = false;
+        me.gatekeeperChecks.DISCOVER_REMOVE_ADS = false;
+        me.gatekeeperChecks.FULLPROFILE_REMOVE_ADS = false;
+        me.gatekeeperChecks.LIKESYOU_REMOVE_ADS = false;
 
         if (!me.premiums) {
             me.premiums = {};
@@ -92,7 +105,7 @@
             'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
             'intros', 'INTROS',
             'dealbreakers', 'DEALBREAKERS',
-            'see_more_people',
+            'see_more_people', 'SEE_MORE_PEOPLE',
             'questions', 'QUESTIONS',
             'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
             'rewind', 'REWIND',
@@ -101,7 +114,15 @@
             'question_answers', 'QUESTION_ANSWERS',
             'likes_list_sort', 'LIKES_LIST_SORT',
             'priority_likes', 'PRIORITY_LIKES',
-            'read_receipts', 'READ_RECEIPTS'
+            'read_receipts', 'READ_RECEIPTS',
+            'passport', 'PASSPORT',
+            'boost', 'BOOST',
+            'super_boost', 'SUPER_BOOST',
+            'views', 'VIEWS',
+            'profile_visitors', 'PROFILE_VISITORS',
+            'match_search', 'MATCH_SEARCH',
+            'advanced_filters', 'ADVANCED_FILTERS',
+            'message_filters', 'MESSAGE_FILTERS'
         ];
 
         features.forEach(feature => {
