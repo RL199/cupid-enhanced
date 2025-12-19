@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Better Likes You Layout feature (new popup setting)
 - Display photos dates on fullscreen profile photos view.
-- See all intros you've recieved.
-- See all Question answers on profiles.
+- See all intros you've received.
 - horizontal scroll support for full profile photos view using mouse wheel.
+- Enable the option to set dealbreakers in preferences and filter discover results accordingly.
 
 ### Changed
 - Local storage log of visited profiles now includes first photo URL, view date, name, age and location.
