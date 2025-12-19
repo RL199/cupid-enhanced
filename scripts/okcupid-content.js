@@ -481,9 +481,9 @@ function setupHorizontalScroll() {
         button?.click();
     };
 
-    window.addEventListener('wheel', scrollHandler);
+    window.addEventListener('wheel', scrollHandler, { passive: false });
     observers.horizontalScroll = {
-        disconnect: () => window.removeEventListener('wheel', scrollHandler)
+        disconnect: () => window.removeEventListener('wheel', scrollHandler, { passive: false })
     };
 }
 
@@ -761,14 +761,13 @@ function updatePhotoDateDisplay() {
         day: 'numeric'
     });
 
-    newestElement.textContent = `Newest Photo Upload: ${formatDate(photoDates.at(-1))}`;
-    oldestElement.textContent = `Oldest Photo Upload: ${formatDate(photoDates[0])}`;
+    setPhotoDateText(newestElement, oldestElement, formatDate(photoDates.at(-1)), formatDate(photoDates[0]));
 }
 
-function setPhotoDateText(newestEl, oldestEl, status) {
+function setPhotoDateText(newestEl, oldestEl, newestStatus, oldestStatus = newestStatus) {
     if (!newestEl || !oldestEl) return;
-    newestEl.textContent = `Newest Photo Upload: ${status}`;
-    oldestEl.textContent = `Oldest Photo Upload: ${status}`;
+    newestEl.textContent = `Newest Photo Upload: ${newestStatus}`;
+    oldestEl.textContent = `Oldest Photo Upload: ${oldestStatus}`;
 }
 
 function displayPhotoDatesOnImages() {

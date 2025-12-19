@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2025-12-04
+## [1.1.1]
+
+### Fixed
+- Fix issue with photo date display on fullscreen profile photos view not displaying correctly.
+- Fix minor bug when scrolling horizontally in fullscreen profile photos view causing layout issues.
+
+
+## [1.1.0]
 
 ### Added
 - Better Likes You Layout feature (new popup setting)
@@ -20,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default setting for dark mode and better likes you layout are off for new users.
 - Updated rewind button to work as original site behavior (go back to previous profile in discover).
 
-## [1.0.0] - 2025-12-04
+## [1.0.0]
 
 ### Added
 - Display photo upload dates on discover page photos (Better Discover Page feature)
