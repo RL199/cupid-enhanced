@@ -7,7 +7,8 @@
     const SETTINGS_KEY = 'cupidEnhancedSettings';
     let settings = {
         unblurImages: true,
-        likesCount: true
+        likesCount: true,
+        staffMode: false
     };
 
     // Listen for settings from isolated world
@@ -23,19 +24,22 @@
     // --- Handlers ---
 
     const handleLikes = (data) => {
-        // fetch likes remaining count
-        if (data?.data?.userVote?.likesRemaining != null) {
+        if (data?.data?.userVote) {
+            // Force desired values
+            data.data.userVote.shouldTrackLikesCapReached = false; // not sure if it does anything
+            data.data.userVote.__typename = 'UserVotePayload';
+            // fetch likes remaining count
             window.postMessage({
                 type: 'LIKES_REMAINING_COUNT',
                 count: data.data.userVote.likesRemaining
             }, '*');
-        }
-        // fetch likes remaining reset time
-        if (data?.data?.userVote?.likesCapResetTime != null) {
-            window.postMessage({
-                type: 'LIKES_RESET_TIME',
-                time: data.data.userVote.likesCapResetTime
-            }, '*');
+            // fetch likes remaining reset time
+            if (data.data.userVote.likesCapResetTime != null) {
+                window.postMessage({
+                    type: 'LIKES_RESET_TIME',
+                    time: data.data.userVote.likesCapResetTime
+                }, '*');
+            }
         }
     };
 
@@ -43,6 +47,25 @@
         if (!data?.data?.me) return false;
 
         const me = data.data.me;
+        const session = data.data.session;
+
+        if (session) {
+            session.isStaff = settings.staffMode;
+            session.isInEU = false; // not sure if this does anything
+            // session.guestId = '2DZnGaELZWAH2Pxi8yCKrA2'; //TODO: research about guestId usage
+            session.__typename = 'Session';
+
+            // Inject Session Gatekeeper Checks
+            if (!session.gatekeeperChecks) {
+                session.gatekeeperChecks = {};
+            }
+            session.gatekeeperChecks.ONBOARDING_MANDATORY_REDIRECT = false;
+            session.gatekeeperChecks.TERMS_MANDATORY_REDIRECT = false;
+            session.gatekeeperChecks.SMS_MANDATORY_REDIRECT = false;
+            session.gatekeeperChecks.INCOGNITO_TERMED_MANDATORY_REDIRECT = false;
+            session.gatekeeperChecks.__typename = 'GatekeeperChecks';
+        }
+
         me.isAlist = true;
         me.isAdFree = true;
         me.isIncognito = true; // Incognito mode (not sure if this does anything)

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Bypass user photo requirements to unlock functions that require having photos, like sending likes and passes.
+- New option to enable stuff mode in the settings popup.
 
 ### Fixed
 - Fix issue with photo date display on fullscreen profile photos view not displaying correctly.
