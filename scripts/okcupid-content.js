@@ -8,11 +8,8 @@ console.log('###Cupid content script loaded###');
 
 const SETTINGS_KEY = 'cupidEnhancedSettings';
 const DEFAULT_SETTINGS = {
-    unblurImages: true,
-    likesCount: true,
     enhanceDiscoverPage: true,
     enhanceLikesYouPage: true,
-    blockPremiumAds: true,
     horizontalScroll: true,
     darkMode: true
 };
@@ -552,8 +549,7 @@ function applySettings() {
 function setupObservers() {
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
-        { key: 'likesYouPage', setting: 'enhanceLikesYouPage', fn: enhanceLikesYouPage },
-        { key: 'premiumAds', setting: 'blockPremiumAds', fn: blockPremiumAds }
+        { key: 'likesYouPage', setting: 'enhanceLikesYouPage', fn: enhanceLikesYouPage }
     ];
 
     observerConfig.forEach(({ key, setting, fn }) => {
@@ -561,6 +557,9 @@ function setupObservers() {
             observers[key] = fn();
         }
     });
+
+    // Features that are always enabled
+    observers.premiumAds = blockPremiumAds();
 
     if (currentSettings.horizontalScroll) {
         setupHorizontalScroll();
@@ -595,8 +594,6 @@ function createBodyObserver(callback) {
 // =============================================================================
 
 function updateLikesIncomingCount() {
-    if (!currentSettings.likesCount) return;
-
     const count = parseInt(localStorage.getItem(STORAGE_KEYS.likesCount) || '0', 10);
     if (count > 0) updateLikesUI(count);
 }
@@ -619,7 +616,7 @@ function replaceInterestWithLikes() {
 
 function startLikesCountPolling() {
     setInterval(() => {
-        if (currentSettings.likesCount) updateLikesIncomingCount();
+        updateLikesIncomingCount();
     }, 2000);
 }
 
@@ -970,8 +967,6 @@ function createCupidSection() {
 
 function blockPremiumAds() {
     return createBodyObserver(() => {
-        if (!currentSettings.blockPremiumAds) return;
-
         PREMIUM_AD_SELECTORS.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
                 if (element.style.display !== 'none') {

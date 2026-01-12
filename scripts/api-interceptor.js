@@ -6,8 +6,6 @@
 
     const SETTINGS_KEY = 'cupidEnhancedSettings';
     let settings = {
-        unblurImages: true,
-        likesCount: true,
         staffMode: false
     };
 
@@ -156,7 +154,6 @@
     };
 
     const handleUnblur = (data) => {
-        if (!settings.unblurImages) return false;
         let modified = false;
         const traverse = (obj) => {
             if (!obj || typeof obj !== 'object') return;

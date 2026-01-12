@@ -1,12 +1,9 @@
 const SETTINGS_KEY = 'cupidEnhancedSettings';
 
 const DEFAULT_SETTINGS = {
-    unblurImages: true,
-    likesCount: true,
     staffMode: false,
     enhanceDiscoverPage: true,
     enhanceLikesYouPage: false,
-    blockPremiumAds: true,
     horizontalScroll: true,
     darkMode: false
 };
