@@ -80,6 +80,14 @@ function setupEventListeners() {
             }
         });
     });
+
+    // Open OkCupid button
+    const openSiteBtn = document.getElementById('open-site-btn');
+    if (openSiteBtn) {
+        openSiteBtn.addEventListener('click', () => {
+            chrome.tabs.create({ url: 'https://www.okcupid.com/' });
+        });
+    }
 }
 
 // Display version from manifest
