@@ -90,16 +90,54 @@
         me.gatekeeperChecks.ALIST_DISCOUNT_MASTHEAD = false;
         me.gatekeeperChecks.INTOYOU_MASTHEAD = true; // Enable 'Into You' feature
 
-        // Disable paywall gatekeepers
+        // --- INJECTED GATEKEEPERS START ---
+        // 1. Unlock Dealbreakers (Enable filtering)
+        me.gatekeeperChecks.PREFERENCES_AGE_DEALBREAKER = true;
+        me.gatekeeperChecks.PREFERENCES_DISTANCE_DEALBREAKER = true;
+        me.gatekeeperChecks.PREFERENCES_HEIGHT_DEALBREAKER = true;
+        me.gatekeeperChecks.PREFERENCES_SMOKING_DEALBREAKER = true;
+        me.gatekeeperChecks.PREFERENCES_RELIGION_DEALBREAKER = true;
+        me.gatekeeperChecks.PREFERENCES_HASKIDS_DEALBREAKER = true;
+        me.gatekeeperChecks.PREFERENCES_WANTSKIDS_DEALBREAKER = true;
+
+        // 2. Remove CRM/Upsells (Clean UI)
+        me.gatekeeperChecks.CRM_BOOST = false;
+        me.gatekeeperChecks.CRM_UPGRADE = false;
+        me.gatekeeperChecks.CRM_PREMIUM = false;
+        me.gatekeeperChecks.CRM_SUBSCRIPTION_DISCOUNT_PROMO = false;
+        me.gatekeeperChecks.ONBOARDING_UPSELL = false;
+        me.gatekeeperChecks.CONVERSATIONLIST_EMPTYSTATE_BOOST = false;
+        me.gatekeeperChecks.CONVERSATIONLIST_SEE_WHO_LIKES_YOU = false;
+
+        // 3. Enable Superlikes
+        me.gatekeeperChecks.DISCOVER_MATCHPERCENTAGE_SUPERLIKE = true;
+        me.gatekeeperChecks.DISCOVER_PASSPORT_SUPERLIKE = true;
+        me.gatekeeperChecks.LIKES_YOULIKESUPERLIKE = true;
+        me.gatekeeperChecks.FULLPROFILE_SUPERLIKE = true;
+
+        // 4. Incognito & Privacy
+        me.gatekeeperChecks.SELF_PROFILE_INCOGNITO = true;
+        me.gatekeeperChecks.SETTINGS_PRIVACY_INCOGNITO = true;
+        me.gatekeeperChecks.HEADER_BANNER_INCOGNITO = true;
+
+        // 5. Advanced Search
+        me.gatekeeperChecks.QUESTION_SEARCH = true;
+        me.gatekeeperChecks.QUESTIONSEARCH_PREFERENCES = true;
+        me.gatekeeperChecks.CONVERSATION_READ_RECEIPT = true;
+        // --- INJECTED GATEKEEPERS END ---
+
+        // Disable paywall gatekeepers (false = don't show paywall)
         me.gatekeeperChecks.DISCOVER_LIKESCAP = false;
         me.gatekeeperChecks.FULLPROFILE_LIKESCAP = false;
         me.gatekeeperChecks.DISCOVER_SUPERLIKE_UPGRADEMODAL = false;
         me.gatekeeperChecks.LIKES_SEEWHOLIKESYOU_CTA = false;
         me.gatekeeperChecks.LIKES_LIKESYOU_BLURTAP = false;
         me.gatekeeperChecks.LIKES_LIKESYOU_SCROLL = false;
-        me.gatekeeperChecks.DISCOVER_REMOVE_ADS = false;
-        me.gatekeeperChecks.FULLPROFILE_REMOVE_ADS = false;
-        me.gatekeeperChecks.LIKESYOU_REMOVE_ADS = false;
+
+        // Enable ad removal gatekeepers (true = remove ads)
+        me.gatekeeperChecks.DISCOVER_REMOVE_ADS = true;
+        me.gatekeeperChecks.FULLPROFILE_REMOVE_ADS = true;
+        me.gatekeeperChecks.LIKESYOU_REMOVE_ADS = true;
 
         if (!me.premiums) {
             me.premiums = {};
