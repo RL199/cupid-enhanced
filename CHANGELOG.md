@@ -5,12 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.1]
+## [1.2.0]
 
 ### Added
 - Bypass user photo requirements to unlock functions that require having photos, like sending likes and passes.
-- New option to enable stuff mode in the settings popup.
+- New option to enable staff mode in the settings popup.
 - "Open OkCupid" button in the popup to quickly open the site.
+- Add description for each popup setting for better clarity.
+- Block sending analytics data to OkCupid servers.
 
 ### Fixed
 - Fix issue with photo date display on fullscreen profile photos view not displaying correctly.
