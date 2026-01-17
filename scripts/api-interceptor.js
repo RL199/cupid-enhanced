@@ -209,6 +209,96 @@
 
     // --- Response Interceptor ---
 
+    const originalFetch = window.fetch;
+
+    // Analytics operations to block (GraphQL)
+    const blockedOperations = [
+        'WebLogAnalyticsEvents',
+        'webLogAnalyticsEvents',
+        // 'WebE2PStaffbar', // Staff tracking
+        // 'WebUpdateStats', // Stats tracking
+        // 'webUpdateStats'
+    ];
+
+    // URLs to block entirely (Cloudflare, analytics, etc.)
+    const blockedUrls = [
+        '/cdn-cgi/rum', // Cloudflare Real User Monitoring
+        'cloudflareinsights.com', // Cloudflare analytics beacon
+        '/beacon.min.js', // Cloudflare beacon script
+        'google-analytics.com',
+        'googletagmanager.com',
+        'facebook.com/tr', // Facebook pixel
+        'doubleclick.net',
+        'hotjar.com',
+        'amplitude.com',
+        'mixpanel.com',
+        'segment.io',
+        'sentry.io'
+    ];
+
+    // Intercept fetch to modify request payloads (for experiment overrides)
+    window.fetch = async function (input, init) {
+        const url = typeof input === 'string' ? input : input.url;
+
+        // Block QA/test server requests that cause DNS errors
+        if (url.includes('qa1.match.com') || url.includes('qa2.match.com')) {
+            return new Response('', { status: 200 });
+        }
+
+        // Block tracking/analytics URLs entirely
+        if (blockedUrls.some(blocked => url.includes(blocked))) {
+            console.log(`[Cupid Enhanced] Blocked tracking URL: ${url.split('?')[0]}`);
+            return new Response('', { status: 200 });
+        }
+
+        // Block analytics requests
+        if (url.includes('graphql') && init?.body) {
+            try {
+                const body = JSON.parse(init.body);
+                if (blockedOperations.includes(body.operationName)) {
+                    console.log(`[Cupid Enhanced] Blocked analytics: ${body.operationName}`);
+                    // Return a fake successful response
+                    return new Response(JSON.stringify({ data: null }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+            } catch (e) {
+                // Continue if parse fails
+            }
+        }
+
+        // Only intercept GraphQL requests with a body
+        if (url.includes('graphql') && init?.body) {
+            try {
+                const body = JSON.parse(init.body);
+
+                // Disable premium pricing requests in WebBillingUpgradeEligibility
+                if (body.operationName === 'WebBillingUpgradeEligibility' && body.variables) {
+                    body.variables.includePremium = false;
+                    body.variables.includePremiumPlus = false;
+                    init.body = JSON.stringify(body);
+                    console.log('[Cupid Enhanced] Disabled billing upgrade eligibility checks');
+                }
+
+                // // Intercept userrowsIncomingLikes to modify 'after' pagination cursor
+                // if ((body.operationName === 'userrowsIncomingLikes' || body.operationName === 'userrowsOutgoingLikes') && body.variables) {
+                //     const customString = 'HN_AicAyegpZRCgF6-Uusg2'; // Enter the raw string you want to encode
+                //     // Encode in Base64
+                //     body.variables.after = btoa(customString);
+                //     init.body = JSON.stringify(body);
+                //     console.log(`[Cupid Enhanced] Intercepted userrowsIncomingLikes after cursor: ${body.variables.after} (raw: ${customString})`);
+                // }
+
+            } catch (e) {
+                // Not JSON or parse error, continue with original
+            }
+        }
+
+        return originalFetch.call(this, input, init);
+    };
+
+
     const originalText = Response.prototype.text;
 
     Response.prototype.text = async function () {
