@@ -684,7 +684,7 @@ async function fetchImageLastModified(imageUrl) {
         const response = await fetch(imageUrl, { method: 'GET' });
         return response.headers.get('Last-Modified');
     } catch (error) {
-        console.log('[Cupid Enhanced] Failed to fetch:', imageUrl, error);
+        console.error('[Cupid Enhanced] Failed to fetch:', imageUrl, error);
         return null;
     }
 }
@@ -891,7 +891,7 @@ async function saveVisitedProfile(userId, photoUrl, name, age, location) {
         await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
     } catch (error) {
         // Extension context may be invalidated after reload
-        console.log('[Cupid Enhanced] Could not save visited profile:', error.message);
+        console.error('[Cupid Enhanced] Could not save visited profile:', error.message);
     }
 }
 

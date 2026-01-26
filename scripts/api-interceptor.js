@@ -247,7 +247,6 @@
 
         // Block tracking/analytics URLs entirely
         if (blockedUrls.some(blocked => url.includes(blocked))) {
-            console.log(`[Cupid Enhanced] Blocked tracking URL: ${url.split('?')[0]}`);
             return new Response('', { status: 200 });
         }
 
@@ -256,7 +255,6 @@
             try {
                 const body = JSON.parse(init.body);
                 if (blockedOperations.includes(body.operationName)) {
-                    console.log(`[Cupid Enhanced] Blocked analytics: ${body.operationName}`);
                     // Return a fake successful response
                     return new Response(JSON.stringify({ data: null }), {
                         status: 200,
@@ -278,7 +276,6 @@
                     body.variables.includePremium = false;
                     body.variables.includePremiumPlus = false;
                     init.body = JSON.stringify(body);
-                    console.log('[Cupid Enhanced] Disabled billing upgrade eligibility checks');
                 }
 
                 // // Intercept userrowsIncomingLikes to modify 'after' pagination cursor
