@@ -698,12 +698,13 @@ function getDiscoverPagePhotoUrls() {
     return [...new Set(urls)];
 }
 
+// Fetch only headers (not image body) to get Last-Modified date
 async function fetchImageLastModified(imageUrl) {
     try {
-        const response = await fetch(imageUrl, { method: 'GET' });
+        const response = await fetch(imageUrl, { method: 'HEAD' });
         return response.headers.get('Last-Modified');
     } catch (error) {
-        console.error('[Cupid Enhanced] Failed to fetch:', imageUrl, error);
+        console.error('[Cupid Enhanced] Failed to fetch headers:', imageUrl, error);
         return null;
     }
 }
