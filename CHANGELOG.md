@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix issue with photo date display on fullscreen profile photos view not displaying correctly.
 - Fix minor bug when scrolling horizontally in fullscreen profile photos view causing layout issues.
+- "Likes You" page layout applying incorrectly in message inbox.
 
 ### Removed
 - Remove "Likes Count" , "Unblur Images", "Hide Promotions" settings from popup as they are turned on by default and don't have any reason to be toggled off.

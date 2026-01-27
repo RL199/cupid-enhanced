@@ -263,9 +263,8 @@ const DARK_MODE_STYLES = `
 const LIKES_YOU_STYLES = `
     /* Expand container width */
     .userrows-content,
-    .userrows-card-container,
-    .Q8o8ldWxQdXz5zE0jhgx,
-    .ogFfHbz4Rbttu2zVAYGe {
+    .userrows-card-container
+    {
         max-width: 100% !important;
         width: 100% !important;
     }
