@@ -6,13 +6,6 @@ console.log('###Cupid content script loaded###');
 // Constants
 // =============================================================================
 
-const SETTINGS_KEY = 'cupidEnhancedSettings';
-const DEFAULT_SETTINGS = {
-    enhanceDiscoverPage: true,
-    enhanceLikesYouPage: true,
-    horizontalScroll: true,
-    darkMode: true
-};
 
 const STORAGE_KEYS = {
     likesRemaining: 'previous_likes_remaining',

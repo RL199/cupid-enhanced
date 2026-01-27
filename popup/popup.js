@@ -1,12 +1,3 @@
-const SETTINGS_KEY = 'cupidEnhancedSettings';
-
-const DEFAULT_SETTINGS = {
-    staffMode: false,
-    enhanceDiscoverPage: true,
-    enhanceLikesYouPage: false,
-    horizontalScroll: true,
-    darkMode: false
-};
 
 let currentSettings = { ...DEFAULT_SETTINGS };
 

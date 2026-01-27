@@ -43,6 +43,7 @@
                 "https://www.okcupid.com/*"
             ],
             "js": [
+                "scripts/shared-constants.js",
                 "scripts/okcupid-content.js"
             ],
             "run_at": "document_start",
