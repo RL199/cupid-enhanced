@@ -278,6 +278,20 @@
                     init.body = JSON.stringify(body);
                 }
 
+                // Change voteSource from FEATURED_QUESTION to DOUBLETAKE in WebUserVote to bypass question voting limits
+                if (body.operationName === 'WebUserVote' && body.variables?.input?.votes) {
+                    let modified = false;
+                    body.variables.input.votes.forEach(vote => {
+                        if (vote.voteSource === 'FEATURED_QUESTION') {
+                            vote.voteSource = 'INCOMING_LIKES_SUPERLIKE_INTRO';
+                            modified = true;
+                        }
+                    });
+                    if (modified) {
+                        init.body = JSON.stringify(body);
+                    }
+                }
+
                 // // Intercept userrowsIncomingLikes to modify 'after' pagination cursor
                 // if ((body.operationName === 'userrowsIncomingLikes' || body.operationName === 'userrowsOutgoingLikes') && body.variables) {
                 //     const customString = 'HN_AicAyegpZRCgF6-Uusg2'; // Enter the raw string you want to encode

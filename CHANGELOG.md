@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Open OkCupid" button in the popup to quickly open the site.
 - Add description for each popup setting for better clarity.
 - Block sending analytics data to OkCupid servers.
+- Bypass voting limits on "featured questions" section.
 
 ### Fixed
 - Fix issue with photo date display on fullscreen profile photos view not displaying correctly.
