@@ -1,14 +1,3 @@
-const SETTINGS_KEY = 'cupidEnhancedSettings';
-
-const DEFAULT_SETTINGS = {
-    unblurImages: true,
-    likesCount: true,
-    enhanceDiscoverPage: true,
-    enhanceLikesYouPage: false,
-    blockPremiumAds: true,
-    horizontalScroll: true,
-    darkMode: false
-};
 
 let currentSettings = { ...DEFAULT_SETTINGS };
 
@@ -82,6 +71,14 @@ function setupEventListeners() {
             }
         });
     });
+
+    // Open OkCupid button
+    const openSiteBtn = document.getElementById('open-site-btn');
+    if (openSiteBtn) {
+        openSiteBtn.addEventListener('click', () => {
+            chrome.tabs.create({ url: 'https://www.okcupid.com/' });
+        });
+    }
 }
 
 // Display version from manifest

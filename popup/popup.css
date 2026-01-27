@@ -73,34 +73,42 @@ body {
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
+.open-site-btn {
+    padding: 4px 10px;
+    background: rgba(var(--primary-purple-rgb), 0.2);
+    border: 1px solid rgba(var(--primary-pink-rgb), 0.3);
+    border-radius: 12px;
+    color: var(--primary-pink);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+
+.open-site-btn:hover {
+    background: rgba(var(--primary-purple-rgb), 0.4);
+    border-color: var(--primary-pink);
+    color: white;
+}
+
+.open-site-btn:active {
+    transform: translateY(1px);
+}
+
+.open-site-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
 .settings-container {
     padding: 10px;
     padding-bottom: 0;
     background: rgba(18, 6, 40, 0.5);
-}
-
-.settings-section {
-    margin-bottom: 16px;
-}
-
-.section-title {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-accent);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid rgba(var(--primary-purple-rgb), 0.3);
-}
-
-.section-icon {
-    width: 16px;
-    height: 16px;
-    fill: var(--primary-pink);
 }
 
 .setting-item {
@@ -155,6 +163,13 @@ body {
     line-height: 1;
     display: flex;
     align-items: center;
+}
+
+.setting-description {
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.8;
+    margin-top: 3px;
 }
 
 .toggle-switch {
@@ -212,12 +227,18 @@ body {
 }
 
 .footer {
-    padding: 8px;
+    padding: 8px 12px;
     background: rgba(var(--bg-gradient-start-rgb), 0.5);
     border-top: 1px solid rgba(var(--primary-purple-rgb), 0.3);
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .version {
@@ -231,9 +252,12 @@ body {
 }
 
 .instructions {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-secondary);
     font-weight: 500;
+    line-height: 1;
+    display: flex;
+    align-items: center;
 }
 
 .instructions a {

@@ -6,16 +6,6 @@ console.log('###Cupid content script loaded###');
 // Constants
 // =============================================================================
 
-const SETTINGS_KEY = 'cupidEnhancedSettings';
-const DEFAULT_SETTINGS = {
-    unblurImages: true,
-    likesCount: true,
-    enhanceDiscoverPage: true,
-    enhanceLikesYouPage: true,
-    blockPremiumAds: true,
-    horizontalScroll: true,
-    darkMode: true
-};
 
 const STORAGE_KEYS = {
     likesRemaining: 'previous_likes_remaining',
@@ -273,9 +263,8 @@ const DARK_MODE_STYLES = `
 const LIKES_YOU_STYLES = `
     /* Expand container width */
     .userrows-content,
-    .userrows-card-container,
-    .Q8o8ldWxQdXz5zE0jhgx,
-    .ogFfHbz4Rbttu2zVAYGe {
+    .userrows-card-container
+    {
         max-width: 100% !important;
         width: 100% !important;
     }
@@ -344,7 +333,26 @@ if (document.readyState === 'loading') {
     init();
 }
 
+function displayConsoleLogo() {
+    const logo = `
+%c
+ ♥♥♥♥♥♥ ♥♥    ♥♥ ♥♥♥♥♥♥  ♥♥ ♥♥♥♥♥♥      ♥♥♥♥♥♥♥ ♥♥♥    ♥♥ ♥♥   ♥♥  ♥♥♥♥♥  ♥♥♥    ♥♥  ♥♥♥♥♥♥ ♥♥♥♥♥♥♥ ♥♥♥♥♥♥
+♥♥      ♥♥    ♥♥ ♥♥   ♥♥ ♥♥ ♥♥   ♥♥     ♥♥      ♥♥♥♥   ♥♥ ♥♥   ♥♥ ♥♥   ♥♥ ♥♥♥♥   ♥♥ ♥♥      ♥♥      ♥♥   ♥♥
+♥♥      ♥♥    ♥♥ ♥♥♥♥♥♥  ♥♥ ♥♥   ♥♥     ♥♥♥♥♥   ♥♥ ♥♥  ♥♥ ♥♥♥♥♥♥♥ ♥♥♥♥♥♥♥ ♥♥ ♥♥  ♥♥ ♥♥      ♥♥♥♥♥   ♥♥   ♥♥
+♥♥      ♥♥    ♥♥ ♥♥      ♥♥ ♥♥   ♥♥     ♥♥      ♥♥  ♥♥ ♥♥ ♥♥   ♥♥ ♥♥   ♥♥ ♥♥  ♥♥ ♥♥ ♥♥      ♥♥      ♥♥   ♥♥
+ ♥♥♥♥♥♥  ♥♥♥♥♥♥  ♥♥      ♥♥ ♥♥♥♥♥♥      ♥♥♥♥♥♥♥ ♥♥   ♥♥♥♥ ♥♥   ♥♥ ♥♥   ♥♥ ♥♥   ♥♥♥♥  ♥♥♥♥♥♥ ♥♥♥♥♥♥♥ ♥♥♥♥♥♥
+
+`;
+
+    console.log(
+        logo,
+        'color: #ff1493; font-weight: bold;'
+
+    );
+}
+
 async function init() {
+    displayConsoleLogo();
     await loadSettings();
     setupEventListeners();
     setupObservers();
@@ -481,9 +489,9 @@ function setupHorizontalScroll() {
         button?.click();
     };
 
-    window.addEventListener('wheel', scrollHandler);
+    window.addEventListener('wheel', scrollHandler, { passive: false });
     observers.horizontalScroll = {
-        disconnect: () => window.removeEventListener('wheel', scrollHandler)
+        disconnect: () => window.removeEventListener('wheel', scrollHandler, { passive: false })
     };
 }
 
@@ -552,8 +560,7 @@ function applySettings() {
 function setupObservers() {
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
-        { key: 'likesYouPage', setting: 'enhanceLikesYouPage', fn: enhanceLikesYouPage },
-        { key: 'premiumAds', setting: 'blockPremiumAds', fn: blockPremiumAds }
+        { key: 'likesYouPage', setting: 'enhanceLikesYouPage', fn: enhanceLikesYouPage }
     ];
 
     observerConfig.forEach(({ key, setting, fn }) => {
@@ -561,6 +568,9 @@ function setupObservers() {
             observers[key] = fn();
         }
     });
+
+    // Features that are always enabled
+    observers.premiumAds = blockPremiumAds();
 
     if (currentSettings.horizontalScroll) {
         setupHorizontalScroll();
@@ -595,8 +605,6 @@ function createBodyObserver(callback) {
 // =============================================================================
 
 function updateLikesIncomingCount() {
-    if (!currentSettings.likesCount) return;
-
     const count = parseInt(localStorage.getItem(STORAGE_KEYS.likesCount) || '0', 10);
     if (count > 0) updateLikesUI(count);
 }
@@ -619,7 +627,7 @@ function replaceInterestWithLikes() {
 
 function startLikesCountPolling() {
     setInterval(() => {
-        if (currentSettings.likesCount) updateLikesIncomingCount();
+        updateLikesIncomingCount();
     }, 2000);
 }
 
@@ -682,12 +690,13 @@ function getDiscoverPagePhotoUrls() {
     return [...new Set(urls)];
 }
 
+// Fetch only headers (not image body) to get Last-Modified date
 async function fetchImageLastModified(imageUrl) {
     try {
-        const response = await fetch(imageUrl, { method: 'GET' });
+        const response = await fetch(imageUrl, { method: 'HEAD' });
         return response.headers.get('Last-Modified');
     } catch (error) {
-        console.log('[Cupid Enhanced] Failed to fetch:', imageUrl, error);
+        console.error('[Cupid Enhanced] Failed to fetch headers:', imageUrl, error);
         return null;
     }
 }
@@ -761,13 +770,13 @@ function updatePhotoDateDisplay() {
         day: 'numeric'
     });
 
-    newestElement.textContent = `Newest Photo Upload: ${formatDate(photoDates.at(-1))}`;
-    oldestElement.textContent = `Oldest Photo Upload: ${formatDate(photoDates[0])}`;
+    setPhotoDateText(newestElement, oldestElement, formatDate(photoDates.at(-1)), formatDate(photoDates[0]));
 }
 
-function setPhotoDateText(newestEl, oldestEl, status) {
-    newestEl.textContent = `Newest Photo Upload: ${status}`;
-    oldestEl.textContent = `Oldest Photo Upload: ${status}`;
+function setPhotoDateText(newestEl, oldestEl, newestStatus, oldestStatus = newestStatus) {
+    if (!newestEl || !oldestEl) return;
+    newestEl.textContent = `Newest Photo Upload: ${newestStatus}`;
+    oldestEl.textContent = `Oldest Photo Upload: ${oldestStatus}`;
 }
 
 function displayPhotoDatesOnImages() {
@@ -894,7 +903,7 @@ async function saveVisitedProfile(userId, photoUrl, name, age, location) {
         await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
     } catch (error) {
         // Extension context may be invalidated after reload
-        console.log('[Cupid Enhanced] Could not save visited profile:', error.message);
+        console.error('[Cupid Enhanced] Could not save visited profile:', error.message);
     }
 }
 
@@ -970,8 +979,6 @@ function createCupidSection() {
 
 function blockPremiumAds() {
     return createBodyObserver(() => {
-        if (!currentSettings.blockPremiumAds) return;
-
         PREMIUM_AD_SELECTORS.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
                 if (element.style.display !== 'none') {

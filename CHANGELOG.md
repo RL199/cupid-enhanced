@@ -5,14 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2025-12-04
+## [1.2.0]
+
+### Added
+- Bypass user photo requirements to unlock functions that require having photos, like sending likes and passes.
+- New option to enable staff mode in the settings popup.
+- "Open OkCupid" button in the popup to quickly open the site.
+- Add description for each popup setting for better clarity.
+- Block sending analytics data to OkCupid servers.
+- Bypass voting limits on "featured questions" section.
+
+### Fixed
+- Fix issue with photo date display on fullscreen profile photos view not displaying correctly.
+- Fix minor bug when scrolling horizontally in fullscreen profile photos view causing layout issues.
+- "Likes You" page layout applying incorrectly in message inbox.
+
+### Removed
+- Remove "Likes Count" , "Unblur Images", "Hide Promotions" settings from popup as they are turned on by default and don't have any reason to be toggled off.
+
+
+## [1.1.0]
 
 ### Added
 - Better Likes You Layout feature (new popup setting)
 - Display photos dates on fullscreen profile photos view.
-- See all intros you've recieved.
-- See all Question answers on profiles.
+- See all intros you've received.
 - horizontal scroll support for full profile photos view using mouse wheel.
+- Enable the option to set dealbreakers in preferences and filter discover results accordingly.
 
 ### Changed
 - Local storage log of visited profiles now includes first photo URL, view date, name, age and location.
@@ -20,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default setting for dark mode and better likes you layout are off for new users.
 - Updated rewind button to work as original site behavior (go back to previous profile in discover).
 
-## [1.0.0] - 2025-12-04
+## [1.0.0]
 
 ### Added
 - Display photo upload dates on discover page photos (Better Discover Page feature)
