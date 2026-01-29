@@ -10,6 +10,72 @@
     };
 
     // =============================================================================
+    // API Interceptor Constants
+    // =============================================================================
+
+    // Headers we want to capture from OkCupid requests
+    const HEADERS_TO_CAPTURE = [
+        'authorization',
+        'x-okcupid-auth-v',
+        'x-okcupid-device-id',
+        'x-okcupid-locale',
+        'x-okcupid-platform',
+        'x-okcupid-version'
+    ];
+
+    // Analytics operations to block (GraphQL)
+    const BLOCKED_OPERATIONS = [
+        'WebLogAnalyticsEvents',
+        'webLogAnalyticsEvents'
+        // 'WebE2PStaffbar', // Staff tracking
+        // 'WebUpdateStats', // Stats tracking
+        // 'webUpdateStats'
+    ];
+
+    // URLs to block entirely (Cloudflare, analytics, etc.)
+    const BLOCKED_URLS = [
+        '/cdn-cgi/rum', // Cloudflare Real User Monitoring
+        'cloudflareinsights.com', // Cloudflare analytics beacon
+        '/beacon.min.js', // Cloudflare beacon script
+        'google-analytics.com',
+        'googletagmanager.com',
+        'facebook.com/tr', // Facebook pixel
+        'doubleclick.net',
+        'hotjar.com',
+        'amplitude.com',
+        'mixpanel.com',
+        'segment.io',
+        'sentry.io'
+    ];
+
+    // Premium features found in module 88074 (lowercase and uppercase variants)
+    const PREMIUM_FEATURES = [
+        'intoyou', 'INTO_YOU',
+        'comfree', 'ad_free', 'AD_FREE', 'ADFREE',
+        'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
+        'intros', 'INTROS',
+        'dealbreakers', 'DEALBREAKERS',
+        'see_more_people', 'SEE_MORE_PEOPLE',
+        'questions', 'QUESTIONS',
+        'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
+        'rewind', 'REWIND',
+        'question_search', 'QUESTION_SEARCH',
+        'who_likes_you', 'see_who_likes_you', 'SEE_WHO_LIKES_YOU',
+        'question_answers', 'QUESTION_ANSWERS',
+        'likes_list_sort', 'LIKES_LIST_SORT',
+        'priority_likes', 'PRIORITY_LIKES',
+        'read_receipts', 'READ_RECEIPTS',
+        'passport', 'PASSPORT',
+        'boost', 'BOOST',
+        'super_boost', 'SUPER_BOOST',
+        'views', 'VIEWS',
+        'profile_visitors', 'PROFILE_VISITORS',
+        'match_search', 'MATCH_SEARCH',
+        'advanced_filters', 'ADVANCED_FILTERS',
+        'message_filters', 'MESSAGE_FILTERS'
+    ];
+
+    // =============================================================================
     // Header Capture for Background Script API Requests
     // =============================================================================
 
@@ -220,31 +286,6 @@
     // --- Response Interceptor ---
 
     const originalFetch = window.fetch;
-
-    // Analytics operations to block (GraphQL)
-    const blockedOperations = [
-        'WebLogAnalyticsEvents',
-        'webLogAnalyticsEvents',
-        // 'WebE2PStaffbar', // Staff tracking
-        // 'WebUpdateStats', // Stats tracking
-        // 'webUpdateStats'
-    ];
-
-    // URLs to block entirely (Cloudflare, analytics, etc.)
-    const blockedUrls = [
-        '/cdn-cgi/rum', // Cloudflare Real User Monitoring
-        'cloudflareinsights.com', // Cloudflare analytics beacon
-        '/beacon.min.js', // Cloudflare beacon script
-        'google-analytics.com',
-        'googletagmanager.com',
-        'facebook.com/tr', // Facebook pixel
-        'doubleclick.net',
-        'hotjar.com',
-        'amplitude.com',
-        'mixpanel.com',
-        'segment.io',
-        'sentry.io'
-    ];
 
     // Intercept fetch to modify request payloads (for experiment overrides)
     window.fetch = async function (input, init) {

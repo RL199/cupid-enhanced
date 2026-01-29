@@ -2,10 +2,16 @@
 // This file is loaded by popup.js, okcupid-content.js, and api-interceptor.js
 // Note: When loaded in MAIN world (api-interceptor.js), this runs in a separate context
 // from ISOLATED world (okcupid-content.js), so constants are duplicated but not shared
+//
+// IMPORTANT: We use 'var' instead of 'const' because when multiple content scripts
+// are injected into the same context (ISOLATED world), const/let create block-scoped
+// variables that don't properly share across files. 'var' creates function-scoped
+// variables that are accessible globally across all content script files.
+// See: https://stackoverflow.com/questions/9515704
 
-const SETTINGS_KEY = 'cupidEnhancedSettings';
+var SETTINGS_KEY = 'cupidEnhancedSettings';
 
-const DEFAULT_SETTINGS = {
+var DEFAULT_SETTINGS = {
     staffMode: false,
     enhanceDiscoverPage: true,
     enhanceLikesYouPage: false,
@@ -15,77 +21,11 @@ const DEFAULT_SETTINGS = {
 };
 
 // =============================================================================
-// API Interceptor Constants (MAIN world)
-// =============================================================================
-
-// Headers we want to capture from OkCupid requests
-const HEADERS_TO_CAPTURE = [
-    'authorization',
-    'x-okcupid-auth-v',
-    'x-okcupid-device-id',
-    'x-okcupid-locale',
-    'x-okcupid-platform',
-    'x-okcupid-version'
-];
-
-// Analytics operations to block (GraphQL)
-const BLOCKED_OPERATIONS = [
-    'WebLogAnalyticsEvents',
-    'webLogAnalyticsEvents'
-    // 'WebE2PStaffbar', // Staff tracking
-    // 'WebUpdateStats', // Stats tracking
-    // 'webUpdateStats'
-];
-
-// URLs to block entirely (Cloudflare, analytics, etc.)
-const BLOCKED_URLS = [
-    '/cdn-cgi/rum', // Cloudflare Real User Monitoring
-    'cloudflareinsights.com', // Cloudflare analytics beacon
-    '/beacon.min.js', // Cloudflare beacon script
-    'google-analytics.com',
-    'googletagmanager.com',
-    'facebook.com/tr', // Facebook pixel
-    'doubleclick.net',
-    'hotjar.com',
-    'amplitude.com',
-    'mixpanel.com',
-    'segment.io',
-    'sentry.io'
-];
-
-// Premium features found in module 88074 (lowercase and uppercase variants)
-const PREMIUM_FEATURES = [
-    'intoyou', 'INTO_YOU',
-    'comfree', 'ad_free', 'AD_FREE', 'ADFREE',
-    'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
-    'intros', 'INTROS',
-    'dealbreakers', 'DEALBREAKERS',
-    'see_more_people', 'SEE_MORE_PEOPLE',
-    'questions', 'QUESTIONS',
-    'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
-    'rewind', 'REWIND',
-    'question_search', 'QUESTION_SEARCH',
-    'who_likes_you', 'see_who_likes_you', 'SEE_WHO_LIKES_YOU',
-    'question_answers', 'QUESTION_ANSWERS',
-    'likes_list_sort', 'LIKES_LIST_SORT',
-    'priority_likes', 'PRIORITY_LIKES',
-    'read_receipts', 'READ_RECEIPTS',
-    'passport', 'PASSPORT',
-    'boost', 'BOOST',
-    'super_boost', 'SUPER_BOOST',
-    'views', 'VIEWS',
-    'profile_visitors', 'PROFILE_VISITORS',
-    'match_search', 'MATCH_SEARCH',
-    'advanced_filters', 'ADVANCED_FILTERS',
-    'message_filters', 'MESSAGE_FILTERS'
-];
-
-// =============================================================================
 // Content script constants (ISOLATED world)
 // =============================================================================
 
 // OkCupid API - Available GraphQL Operations
-const OKCUPID_OPERATIONS = {
+var OKCUPID_OPERATIONS = {
     // Queries
     queries: {
         // User/Profile
@@ -262,14 +202,14 @@ const OKCUPID_OPERATIONS = {
     }
 };
 
-const STORAGE_KEYS = {
+var STORAGE_KEYS = {
     likesRemaining: 'previous_likes_remaining',
     likesResetTime: 'likes_reset_time',
     likesCount: 'previous_likes_count',
     visitedProfiles: 'visited_profiles'
 };
 
-const SELECTORS = {
+var SELECTORS = {
     sendButton: 'button[data-cy="messenger.sendButton"]',
     discoverWrapper: '.desktop-dt-wrapper',
     rightPanel: '.desktop-dt-right',
@@ -282,7 +222,7 @@ const SELECTORS = {
     actionButton: '.dt-action-buttons-button'
 };
 
-const PREMIUM_AD_SELECTORS = [
+var PREMIUM_AD_SELECTORS = [
     '.premium-promo-link-anchor',
     '.dt-tags-like-instructions',
     '.RCnxRpTKlcKwgM1UlXlj.yvmovGzlmTO5T6yg_ckm',
@@ -297,14 +237,14 @@ const PREMIUM_AD_SELECTORS = [
     '.read-receipt-cta'
 ];
 
-const DISCOVER_PAGE_ENHANCEMENTS = [
+var DISCOVER_PAGE_ENHANCEMENTS = [
     { selector: '.desktop-dt-content', styles: { maxWidth: '90%', justifyContent: 'center' } },
     { selector: '.desktop-dt-right', styles: { marginLeft: '10px' } },
     { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content', justifyContent: 'center' } },
     { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
 ];
 
-const PHOTO_DATE_LABEL_STYLES = `
+var PHOTO_DATE_LABEL_STYLES = `
     position: absolute;
     bottom: 10px;
     left: 50%;
@@ -321,9 +261,9 @@ const PHOTO_DATE_LABEL_STYLES = `
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 `;
 
-const BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
+var BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
 
-const DARK_MODE_STYLES = `
+var DARK_MODE_STYLES = `
     /* ===========================================
        GLOBAL DARK MODE
        =========================================== */
@@ -515,7 +455,7 @@ const DARK_MODE_STYLES = `
     }
 `;
 
-const LIKES_YOU_STYLES = `
+var LIKES_YOU_STYLES = `
     /* Expand container width */
     .userrows-content,
     .userrows-card-container
