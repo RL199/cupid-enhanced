@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
     enhanceDiscoverPage: true,
     enhanceLikesYouPage: false,
     horizontalScroll: true,
-    darkMode: false
+    darkMode: false,
+    anonymousMessageRead: false
 };
 
 // Content script constants

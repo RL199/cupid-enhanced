@@ -6,13 +6,14 @@
 
     const SETTINGS_KEY = 'cupidEnhancedSettings';
     let settings = {
-        staffMode: false
+        staffMode: false,
+        anonymousMessageRead: false
     };
 
     // =============================================================================
     // Header Capture for Background Script API Requests
     // =============================================================================
-    
+
     // Headers we want to capture from OkCupid requests
     const HEADERS_TO_CAPTURE = [
         'authorization',
@@ -32,8 +33,8 @@
      */
     function captureHeaders(headers) {
         if (!headers) return;
-        
-        const headersObj = headers instanceof Headers 
+
+        const headersObj = headers instanceof Headers
             ? Object.fromEntries(headers.entries())
             : headers;
 
@@ -305,6 +306,23 @@
         if (url.includes('graphql') && init?.body) {
             try {
                 const body = JSON.parse(init.body);
+
+                // Stop read receipt mutations when anonymous mode is enabled
+                if (settings.anonymousMessageRead &&
+                    (body.operationName === 'WebConversationMessageRead' || body.operationName === 'webConversationMessageRead')) {
+                    console.log('[Cupid Enhanced] Blocked WebConversationMessageRead (anonymous mode)');
+                    return new Response(JSON.stringify({
+                        data: {
+                            conversationMessageRead: {
+                                __typename: 'MutationPayload',
+                                success: true
+                            }
+                        }
+                    }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
                 if (blockedOperations.includes(body.operationName)) {
                     // Return a fake successful response
                     return new Response(JSON.stringify({ data: null }), {
