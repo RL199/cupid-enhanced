@@ -369,4 +369,187 @@
             return text;
         }
     };
+
+    // =============================================================================
+    // Console API - Expose functions to window for use in browser console
+    // =============================================================================
+
+    // Store pending promises waiting for responses from content script
+    const pendingRequests = new Map();
+    let requestId = 0;
+
+    // Listen for responses from the content script (isolated world)
+    window.addEventListener('message', (event) => {
+        if (event.source !== window) return;
+
+        if (event.data.type === 'CUPID_API_RESPONSE') {
+            const { id, success, data, error } = event.data;
+            const pending = pendingRequests.get(id);
+            if (pending) {
+                pendingRequests.delete(id);
+                if (success) {
+                    pending.resolve(data);
+                } else {
+                    pending.reject(new Error(error));
+                }
+            }
+        }
+    });
+
+    /**
+     * Send a request to the content script and wait for response
+     */
+    function sendToContentScript(action, payload = {}) {
+        return new Promise((resolve, reject) => {
+            const id = ++requestId;
+            pendingRequests.set(id, { resolve, reject });
+
+            window.postMessage({
+                type: 'CUPID_API_REQUEST',
+                id,
+                action,
+                payload
+            }, '*');
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                if (pendingRequests.has(id)) {
+                    pendingRequests.delete(id);
+                    reject(new Error('Request timed out'));
+                }
+            }, 30000);
+        });
+    }
+
+    /**
+     * Cupid Enhanced Console API
+     * Access via window.cupidAPI in the browser console
+     */
+    window.cupidAPI = {
+        /**
+         * Get current user's read receipt token count and other premium features
+         * @returns {Promise<object>}
+         */
+        getTokenCounts: () => sendToContentScript('getTokenCounts'),
+
+        /**
+         * Get likes cap information
+         * @returns {Promise<object>}
+         */
+        getLikesCap: () => sendToContentScript('getLikesCap'),
+
+        /**
+         * Get the featured question with matching users (Question of the Day)
+         * @param {string[]} [excludedUserIds=[]] - Array of user IDs to exclude from results
+         * @returns {Promise<object>}
+         */
+        getFeaturedQuestion: (excludedUserIds = []) => sendToContentScript('getFeaturedQuestion', { excludedUserIds }),
+
+        /**
+         * Get basic profile information for a user
+         * @param {string} targetId - The user ID to get profile info for
+         * @returns {Promise<object>}
+         */
+        getMatchProfile: (targetId) => sendToContentScript('getMatchProfile', { targetId }),
+
+        /**
+         * Get a conversation thread with a specific user
+         * @param {string} targetId - User ID from messages URL (e.g., /messages/12345678)
+         * @param {number} [limit=50] - Number of messages to fetch
+         * @param {string} [before] - Pagination cursor for older messages (use message ID)
+         * @returns {Promise<object>}
+         */
+        getConversationThread: (targetId, limit = 50, before = null) =>
+            sendToContentScript('getConversationThread', { targetId, limit, before }),
+
+        /**
+         * Vote on a user (like/pass)
+         * @param {string} targetId - User ID to vote on
+         * @param {string} vote - Vote type: 'LIKE', 'PASS', or 'SUPERLIKE'
+         * @param {string} [voteSource='INCOMING_LIKES_SUPERLIKE_INTRO'] - Source of vote (INCOMING_LIKES_SUPERLIKE_INTRO, INCOMING_LIKES, etc.)
+         * @returns {Promise<object>}
+         */
+        vote: (targetId, vote = 'LIKE', voteSource = 'INCOMING_LIKES_SUPERLIKE_INTRO') =>
+            sendToContentScript('vote', { targetId, vote, voteSource }),
+
+        /**
+         * Make a general GraphQL request
+         * @param {string} operationName - GraphQL operation name
+         * @param {string} query - GraphQL query string
+         * @param {object} variables - GraphQL variables
+         * @returns {Promise<object>}
+         */
+        graphQL: (operationName, query, variables = {}) =>
+            sendToContentScript('graphQL', { operationName, query, variables }),
+
+        /**
+         * Make a general API request
+         * @param {string} url - API URL
+         * @param {object} options - Request options (method, body, headers)
+         * @returns {Promise<object>}
+         */
+        request: (url, options = {}) => sendToContentScript('request', { url, options }),
+
+        /**
+         * Show help information
+         */
+        help: () => {
+            console.log(`
+%c🏹 Cupid Enhanced Console API %c
+
+Available commands:
+
+%cawait cupidAPI.getTokenCounts()%c
+    - Check your token counts (read receipts, boosts, superlikes)
+
+%cawait cupidAPI.getLikesCap()%c
+  - Get likes remaining and reset time
+
+%cawait cupidAPI.getFeaturedQuestion()%c
+  - Get the featured question with matching users
+  - Optional param: array of user IDs to exclude
+
+%cawait cupidAPI.getMatchProfile('USER_ID')%c
+  - Get basic profile info (name, age, location, match %)
+
+%cawait cupidAPI.getConversationThread('USER_ID')%c
+  - Fetch messages with a user
+  - Optional 2nd param: number of messages (default: 50)
+  - Optional 3rd param: pagination cursor for older messages
+
+%cawait cupidAPI.vote('USER_ID', 'LIKE')%c
+  - Vote on a user: 'LIKE', 'PASS', or 'SUPERLIKE'
+  - Optional 3rd param: voteSource (default: 'INCOMING_LIKES_SUPERLIKE_INTRO')
+
+%cawait cupidAPI.graphQL(operationName, query, variables)%c
+  - Make a custom GraphQL request
+
+%cawait cupidAPI.request(url, options)%c
+  - Make a custom API request
+
+%cExample:%c
+    const status = await cupidAPI.getTokenCounts();
+    console.log('Read Receipt Tokens:', status.data.me.readReceiptTokenCount);
+`,
+                'color: #ff1493; font-size: 16px; font-weight: bold;',
+                '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #32cd32; font-style: italic;', ''
+            );
+        }
+    };
+
+    // Log availability on load
+    console.log('%c🏹 Cupid Enhanced API available! Type %ccupidAPI.help()%c for commands.',
+        'color: #ff1493;',
+        'color: #00bfff; font-family: monospace;',
+        'color: #ff1493;'
+    );
 })();

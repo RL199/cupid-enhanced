@@ -7,20 +7,42 @@ console.log('###Cupid content script loaded###');
 // =============================================================================
 
 /**
- * Make a GraphQL request to OkCupid API through the background service worker
- * This bypasses CORS restrictions since the request originates from the extension
- * @param {string} operationName - GraphQL operation name
- * @param {string} query - GraphQL query string
- * @param {object} variables - GraphQL variables (optional)
+ * General purpose OkCupid API request function
+ * Makes requests through the background service worker to bypass CORS
+ *
+ * @param {string} url - Full URL or just the endpoint path (e.g., '/graphql/WebLikesCap')
+ * @param {object} options - Request options
+ * @param {string} options.method - HTTP method: 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'
+ * @param {object|string} options.body - Request body (will be JSON stringified if object)
+ * @param {object} options.headers - Additional headers to include
  * @returns {Promise<object>} Response data
+ *
+ * @example
+ * // Simple GET request
+ * const data = await okcupidAPI('https://www.okcupid.com/some-endpoint', { method: 'GET' });
+ *
+ * @example
+ * // POST request with body
+ * const data = await okcupidAPI('https://e2p-okapi.api.okcupid.com/graphql/WebLikesCap', {
+ *     method: 'POST',
+ *     body: { operationName: 'WebLikesCap', variables: {}, query: '...' }
+ * });
  */
-async function okcupidGraphQL(operationName, query, variables = {}) {
+async function okcupidAPI(url, options = {}) {
+    // If URL doesn't start with http, prepend the API base URL
+    const fullUrl = url.startsWith('http')
+        ? url
+        : `https://e2p-okapi.api.okcupid.com${url.startsWith('/') ? '' : '/'}${url}`;
+
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({
-            type: 'OKCUPID_GRAPHQL_REQUEST',
-            operationName,
-            query,
-            variables
+            type: 'OKCUPID_API_REQUEST',
+            url: fullUrl,
+            options: {
+                method: options.method || 'POST',
+                body: options.body,
+                headers: options.headers
+            }
         }, response => {
             if (chrome.runtime.lastError) {
                 reject(new Error(chrome.runtime.lastError.message));
@@ -34,27 +56,38 @@ async function okcupidGraphQL(operationName, query, variables = {}) {
 }
 
 /**
- * Make a raw API request to OkCupid through the background service worker
- * @param {string} url - Full URL to request
- * @param {object} options - Request options (method, body, headers)
+ * Make a GraphQL request to OkCupid API
+ * This is a convenience wrapper around okcupidAPI for GraphQL operations
+ *
+ * @param {string} operationName - GraphQL operation name (see OKCUPID_OPERATIONS)
+ * @param {string} query - GraphQL query string
+ * @param {object} variables - GraphQL variables (optional)
  * @returns {Promise<object>} Response data
+ *
+ * @example
+ * const data = await okcupidGraphQL('WebLikesCap', `
+ *     query WebLikesCap {
+ *         me { id likesCap { likesRemaining resetTime } }
+ *     }
+ * `, {});
+ */
+async function okcupidGraphQL(operationName, query, variables = {}) {
+    return okcupidAPI(`/graphql/${operationName}`, {
+        method: 'POST',
+        body: {
+            operationName,
+            variables,
+            query
+        }
+    });
+}
+
+/**
+ * @deprecated Use okcupidAPI instead for more flexibility
+ * Make a raw API request to OkCupid through the background service worker
  */
 async function okcupidRequest(url, options = {}) {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-            type: 'OKCUPID_API_REQUEST',
-            url,
-            options
-        }, response => {
-            if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError.message));
-            } else if (response?.success) {
-                resolve(response.data);
-            } else {
-                reject(new Error(response?.error || 'Unknown error'));
-            }
-        });
-    });
+    return okcupidAPI(url, options);
 }
 
 /**
@@ -75,316 +108,63 @@ async function getLikesCap() {
     });
 }
 
-// =============================================================================
-// Constants
-// =============================================================================
-
-
-const STORAGE_KEYS = {
-    likesRemaining: 'previous_likes_remaining',
-    likesResetTime: 'likes_reset_time',
-    likesCount: 'previous_likes_count',
-    visitedProfiles: 'visited_profiles'
-};
-
-const SELECTORS = {
-    sendButton: 'button[data-cy="messenger.sendButton"]',
-    discoverWrapper: '.desktop-dt-wrapper',
-    rightPanel: '.desktop-dt-right',
-    photoContainer: '.sliding-pagination-inner-content',
-    likesCount: '.count',
-    navbarLinkText: '.navbar-link-text',
-    prevButton: '.sliding-pagination-button.prev',
-    nextButton: '.sliding-pagination-button.next',
-    cupidSection: '.cupid-enhanced-section',
-    actionButton: '.dt-action-buttons-button'
-};
-
-const PREMIUM_AD_SELECTORS = [
-    '.premium-promo-link-anchor',
-    '.dt-tags-like-instructions',
-    '.RCnxRpTKlcKwgM1UlXlj.yvmovGzlmTO5T6yg_ckm',
-    '.navbar-boost',
-    '.LHLUIR30CVKQDOC2rJps',
-    '.IUE4LujuCAt32rrowE9e',
-    '.sIZ02EKchd4I0KnGgDgF.t1LDnewkFIu_5Qelhi_u',
-    '.MgfNUNvEHRmbdo7IccK9.sidebar-with-card-view',
-    '.okmasthead.incognito-masthead',
-    '.J8RXzumIQVAo3qnCBqHr',
-    '.profile-content-ad',
-    '.read-receipt-cta'
-];
-
-const DISCOVER_PAGE_ENHANCEMENTS = [
-    { selector: '.desktop-dt-content', styles: { maxWidth: '90%', justifyContent: 'center' } },
-    { selector: '.desktop-dt-right', styles: { marginLeft: '10px' } },
-    { selector: '.sliding-pagination-inner-content', styles: { width: 'fit-content', justifyContent: 'center' } },
-    { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
-];
-
-const PHOTO_DATE_LABEL_STYLES = `
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: bold;
-    pointer-events: none;
-    z-index: 100;
-    white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-`;
-
-const BACKGROUND_IMAGE_REGEX = /url\(["']?(https:\/\/pictures\.match\.com\/photos\/[^"')]+)["']?\)/i;
-
-const DARK_MODE_STYLES = `
-    /* ===========================================
-       GLOBAL DARK MODE
-       =========================================== */
-
-    /* Force dark backgrounds */
-    body, main, .pageMain, .userrows-content, .userrows-main, .userrows-card-container {
-        background-color: #121212ff !important;
+/**
+ * Vote on a user (like/pass/superlike)
+ * @param {string} targetId - The user ID to vote on
+ * @param {string} vote - Vote type: 'LIKE', 'PASS', or 'SUPERLIKE'
+ * @param {string} voteSource - Source of vote (default: 'DOUBLETAKE')
+ * @returns {Promise<object>} Response with vote result
+ *
+ * @example
+ * // Like a user
+ * const result = await voteOnUser('abc123', 'LIKE');
+ *
+ * @example
+ * // Pass on a user from incoming likes
+ * const result = await voteOnUser('abc123', 'PASS', 'INCOMING_LIKES');
+ */
+async function voteOnUser(targetId, vote = 'LIKE', voteSource = 'DOUBLETAKE') {
+    const query = `mutation WebUserVote($input: UserVoteInput!) {
+  userVote(input: $input) {
+    success
+    voteResults {
+      success
+      statusCode
+      isMutualLike
+      isViaSpotlight
+      isViaSuperBoost
+      votesRemainingInSource
+      __typename
     }
+    shouldTrackLikesCapReached
+    likesRemaining
+    likesCapResetTime
+    __typename
+  }
+}`;
 
-    /* Global text & icons */
-    h1, h2, h3, h4, button {
-        color: #ffffff !important;
-    }
+    const variables = {
+        input: {
+            votes: [{
+                targetId: targetId,
+                vote: vote.toUpperCase(),
+                voteSource: voteSource,
+                userMetadata: null,
+                comment: null
+            }]
+        }
+    };
 
-    /*============================================
-       MESSAGES - Dark background and light text
-       =========================================== */
-    .t659_29vzMkU6QQL2q0j,
-    .x8amgHNYP_nXx626A_lY,
-    .quickmatch-blank-body {
-        color: #ffffff !important;
+    try {
+        const result = await okcupidGraphQL('WebUserVote', query, variables);
+        console.log(`[Cupid Enhanced] Vote ${vote} on ${targetId}:`, result);
+        return result;
+    } catch (error) {
+        console.error(`[Cupid Enhanced] Vote failed:`, error);
+        throw error;
     }
+}
 
-    .dt-comment-fab svg path ,
-    .matchprofile-details-icon path,
-    .matchprofile-details svg path {
-        fill: #ffffff !important;
-    }
-
-    .WK2PEQwFZVjNdD26XECA {
-        border: 2px solid white !important;
-    }
-
-    /* ===========================================
-       LIKES YOU PAGE - Card Fixes
-       =========================================== */
-
-    /* Card top half (photo area) - black background for missing images */
-    .userrows-main a > div:first-child {
-        background-color: #1a1a1a !important;
-        border-color: #1a1a1a !important;
-    }
-
-    .woVgqTcOq5JxwG6vYaRv {
-        color: #0000bf !important;
-    }
-
-    /* The image itself - transparent to show the background-image */
-    .userrows-main a > div:first-child > div[style*="url"] {
-        background-color: transparent !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        z-index: 1 !important;
-    }
-
-    /* Overlay fix - make non-image overlays transparent */
-    .userrows-main a > div:first-child > div:not([style*="url"]):not(.SqqfnFrP2JvSxoesgTec) {
-        background: transparent !important;
-        background-color: transparent !important;
-    }
-
-    /* Keep the info overlay (SqqfnFrP2JvSxoesgTec) visible */
-    .SqqfnFrP2JvSxoesgTec {
-        z-index: 999999999999 !important;
-        pointer-events: auto !important;
-        position: relative !important;
-    }
-
-    /* Bottom half (text info) */
-    .userrows-main a > div:last-child {
-        background-color: #1a1a1a !important;
-    }
-
-    /* Buttons */
-    button {
-        background-color: #222 !important;
-    }
-
-    /* ===========================================
-       DISCOVER PAGE & PROFILE
-       =========================================== */
-
-    /* Card backgrounds */
-    .desktop-dt-wrapper,
-    .dt-section,
-    .dt-section-content,
-    .card-content-header,
-    .profile-questions-entry,
-    .desktop-dt-top,
-    #profile,
-    .profile-nudge-text,
-    .profile-essay,
-    .profile-essay-header,
-    .k6uyo105F1doQ1ZUZE6M,
-    .profile-essay-contents,
-    .profile-essay-respond.profile-essay-respond--liked,
-    .profilesection {
-        background-color: #1a1a1a !important;
-        color: #fff !important;
-    }
-
-    .dt-section-title {
-        border-start-start-radius: 0 !important;
-        border-start-end-radius: 0 !important;
-    }
-
-    div.tUbfLrJUCHtIlWpDjR_S {
-        background-color: transparent !important;
-    }
-
-    /* Text colors */
-    .card-content-header__text,
-    .card-content-header__location,
-    .matchprofile-details-text,
-    .dt-essay-text,
-    .superlike-button-label,
-    .dt-action-buttons-button.like,
-    .profilesection-title {
-        color: #fff !important;
-    }
-
-    .oSOt1sUnt8oxUGlZ0Sjl,
-    .profile-questions-entry-filters,
-    .profile-questions-entry-circles-button,
-    .overflow-button {
-    background-color: transparent !important;
-    }
-
-    .dgJAAI7joMGaC8PFJ7NM.jezzEjGPHApK6sZ6lEhA{
-        border: 2px solid deepskyblue !important;
-    }
-
-    .yprhCCjFc1H5G2uEgbuS{
-        border: 2px solid deepskyblue !important;
-    }
-
-    .dt-essay-expand-button, .dt-essay-collapse-button {
-        color: deepskyblue !important;
-    }
-
-    .LYEfdMzXSYIrT9DJmry7:hover:before {
-        opacity: 0.3 !important;
-        transform: scale(1) !important;
-    }
-
-    .dt-essay-expand {
-        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #1a1a1a 45%, #1a1a1a 100%) !important;
-    }
-
-    .RdZlPEHL94PdRZqJm_GF {
-        line-height: normal !important;
-    }
-
-    .FhQz9_b2kDEEGYsYah5k,
-    .match-percentage.match-percentage--circle {
-        color: #fff !important;
-    }
-
-    .match-percentage.match-percentage--circle {
-        border-color: #fff !important;
-    }
-
-    .desktop-dt-top,
-    .dt-section {
-        border: 2px solid #e6e6e6 !important;
-    }
-
-    .dt-section-title,
-    .profilesection-title {
-        color: #1a1a1a !important;
-        background-color: #fff !important;
-    }
-
-    /* Photo fade overlays */
-    .sliding-pagination-fade.right,
-    .sliding-pagination-fade.left {
-        background: linear-gradient(to right, rgba(26, 26, 26, 0), rgba(26, 26, 26, 1)) !important;
-    }
-
-    .sliding-pagination-fade.left {
-        background: linear-gradient(to left, rgba(26, 26, 26, 0), rgba(26, 26, 26, 1)) !important;
-    }
-
-    .yhiooHkKxDD3bSd9Svs4.s2IzO3FJ1CYcQrS7Kiwa:before {
-        background: linear-gradient(270deg, #121212  30%, rgba(34, 34, 34, 0.5) 80%, rgba(34, 34, 34, 0) 100%) !important;
-    }
-    .yhiooHkKxDD3bSd9Svs4.Jd_Ct99A9ZvnQzJUn1bi:before {
-        background: linear-gradient(90deg, #121212  30%, rgba(34, 34, 34, 0.5) 80%, rgba(34, 34, 34, 0) 100%) !important;
-    }
-`;
-
-const LIKES_YOU_STYLES = `
-    /* Expand container width */
-    .userrows-content,
-    .userrows-card-container
-    {
-        max-width: 100% !important;
-        width: 100% !important;
-    }
-    .userrows-content-main {
-        max-width: 100% !important;
-        width: 100% !important;
-        flex: 1 1 auto !important;
-        margin-inline-start: 0 !important;
-    }
-
-    .userrows-content-sort{
-        max-width: 100% !important;
-        position: center !important;
-        justify-items: center !important;
-    }
-
-    /* Override JS Grid/Masonry Layout */
-    .incoming-likes-voting-list > div > div,
-    .jBtTsboeLJtQL55nQsEi > div {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
-        height: auto !important;
-        position: relative !important;
-        gap: 10px !important;
-        padding-bottom: 20px !important;
-        justify-content: center !important;
-        margin: 0 auto !important;
-    }
-
-    /* Reset individual card positioning */
-    .incoming-likes-voting-list > div > div > div,
-    .userrows-main > div > div > div {
-        position: relative !important;
-        top: auto !important;
-        left: auto !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-    }
-
-    /* Ensure inner content fills the card */
-    .incoming-likes-voting-list > div > div > div a,
-    .userrows-main > div > div > div a {
-        width: 100% !important;
-        display: block !important;
-    }
-`;
 
 // =============================================================================
 // State
@@ -448,7 +228,7 @@ async function testLikesCapApi() {
         console.log('[Cupid Enhanced] Testing API request...');
         const result = await getLikesCap();
         console.log('[Cupid Enhanced] Likes Cap API Response:', result);
-        
+
         if (result?.data?.me?.likesCap) {
             const likesCap = result.data.me.likesCap;
             console.log('[Cupid Enhanced] Likes Remaining:', likesCap.likesRemaining);
@@ -457,6 +237,697 @@ async function testLikesCapApi() {
         }
     } catch (error) {
         console.error('[Cupid Enhanced] API test failed:', error.message);
+    }
+}
+
+/**
+ * Get current user's token counts and other premium features status
+ * @returns {Promise<object>} User premium features data
+ */
+async function getTokenCounts() {
+    const query = `query WebGetALCTokenCounts {
+  me {
+    id
+    readReceiptTokenCount
+    boostTokenCount
+    superlikeTokenCount
+    __typename
+  }
+}`;
+
+    try {
+        console.log('[Cupid Enhanced] Fetching token counts...');
+        const result = await okcupidGraphQL('WebGetALCTokenCounts', query, {});
+        console.log('[Cupid Enhanced] Token Counts:', result);
+
+        if (result?.data?.me) {
+            const { readReceiptTokenCount, boostTokenCount, superlikeTokenCount } = result.data.me;
+            console.log('[Cupid Enhanced] Read Receipt Tokens:', readReceiptTokenCount ?? 'N/A');
+            console.log('[Cupid Enhanced] Boost Tokens:', boostTokenCount ?? 'N/A');
+            console.log('[Cupid Enhanced] SuperLike Tokens:', superlikeTokenCount ?? 'N/A');
+        }
+
+        return result;
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to get token counts:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * Get the featured question with matching users
+ * This is the "Question of the Day" feature that shows users who answered similarly
+ *
+ * @param {string[]} excludedUserIds - Array of user IDs to exclude from results (optional)
+ * @returns {Promise<object>} Featured question data with matching users
+ *
+ * @example
+ * const featured = await getFeaturedQuestion();
+ * console.log(featured.data.me.recommendedQuestions.featuredQuestionWithMatches);
+ */
+async function getFeaturedQuestion(excludedUserIds = []) {
+    const query = `fragment PhotoInfo on Photo {
+  id
+  caption
+  original
+  square60
+  square82
+  square100
+  square120
+  square160
+  square225
+  square400
+  square800
+  __typename
+}
+
+fragment UserPrimaryImagesFragment on User {
+  primaryImage {
+    id
+    caption
+    original
+    square60
+    square82
+    square100
+    square120
+    square160
+    square225
+    square400
+    square800
+    __typename
+  }
+  __typename
+}
+
+fragment WiwSentencePreferences on User {
+  globalPreferences {
+    gender {
+      values
+      __typename
+    }
+    relationshipType {
+      values
+      __typename
+    }
+    connectionType {
+      values
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment ProfileCommentAttachment on Attachment {
+  ... on ProfileCommentPhoto {
+    type
+    photo {
+      id
+      square800
+      __typename
+    }
+    __typename
+  }
+  ... on ProfileCommentInstagramPhoto {
+    type
+    instagramPhoto {
+      caption
+      original
+      __typename
+    }
+    __typename
+  }
+  ... on ProfileCommentEssay {
+    type
+    essayTitle
+    essayText
+    __typename
+  }
+  __typename
+}
+
+fragment FirstMessageFragment on Match {
+  senderLikes
+  senderPassed
+  senderVote
+  firstMessage {
+    id
+    threadId
+    text
+    attachments {
+      ...ProfileCommentAttachment
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment SelfDetails on User {
+  children
+  relationshipStatus
+  relationshipType
+  smoking
+  weed
+  drinking
+  diet
+  pets
+  ethnicity
+  politics
+  bodyType
+  height
+  astrologicalSign
+  knownLanguages
+  pronounCategory
+  customPronouns
+  genders
+  orientations
+  identityTags
+  realname
+  religion {
+    value
+    modifier
+    __typename
+  }
+  religiousBackground
+  shabbatRoutine
+  kosherHabits
+  occupation {
+    title
+    status
+    employer
+    __typename
+  }
+  education {
+    level
+    school {
+      name
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment Badges on User {
+  badges {
+    name
+    __typename
+  }
+  __typename
+}
+
+fragment EssayFragment on Essay {
+  id
+  groupId
+  groupTitle
+  isPassion
+  title
+  placeholder
+  rawContent
+  processedContent
+  __typename
+}
+
+fragment MatchFragment on Match {
+  ...FirstMessageFragment
+  matchPercent
+  targetLikes
+  targetVote
+  senderLikes
+  senderVote
+  targetMessageTime
+  targetLikeViaSpotlight
+  targetLikeViaSuperBoost
+  user {
+    id
+    displayname
+    username
+    age
+    hasPhotos
+    ...UserPrimaryImagesFragment
+    userLocation {
+      id
+      publicName
+      __typename
+    }
+    photos {
+      ...PhotoInfo
+      __typename
+    }
+    essaysWithUniqueIds {
+      ...EssayFragment
+      __typename
+    }
+    ...WiwSentencePreferences
+    ...SelfDetails
+    ...Badges
+    __typename
+  }
+  __typename
+}
+
+fragment MatchSearchStackMatch on StackMatch {
+  stream
+  match {
+    ...MatchFragment
+    __typename
+  }
+  __typename
+}
+
+fragment MatchSearchMatchPreview on MatchPreview {
+  primaryImageBlurred {
+    square225
+    __typename
+  }
+  primaryImage {
+    id
+    square225
+    square400
+    __typename
+  }
+  __typename
+}
+
+fragment SearchMatchSearchResults on MatchSearchResults {
+  votesRemaining
+  data {
+    ... on StackMatch {
+      ...MatchSearchStackMatch
+      __typename
+    }
+    ... on MatchPreview {
+      ...MatchSearchMatchPreview
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment SearchQuestion on Question {
+  id
+  text
+  answers
+  globalAnswerCount
+  __typename
+}
+
+fragment SearchUserQuestionResponse on UserQuestionResponse {
+  question {
+    ...SearchQuestion
+    __typename
+  }
+  target {
+    answer
+    sameAnswerCount
+    __typename
+  }
+  __typename
+}
+
+fragment SearchQuestionWithMatches on QuestionWithMatches {
+  questionId
+  questionAnswer
+  question {
+    ...SearchUserQuestionResponse
+    __typename
+  }
+  matches(excludedUserIds: $excludedUserIds) {
+    ...SearchMatchSearchResults
+    __typename
+  }
+  __typename
+}
+
+query WebQuestionSearchFeaturedQuestion($excludedUserIds: [String!]) {
+  me {
+    id
+    recommendedQuestions {
+      featuredQuestionWithMatches {
+        ...SearchQuestionWithMatches
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}`;
+
+    const variables = excludedUserIds.length > 0 ? { excludedUserIds } : {};
+
+    try {
+        console.log('[Cupid Enhanced] Fetching featured question...');
+        const result = await okcupidGraphQL('WebQuestionSearchFeaturedQuestion', query, variables);
+        console.log('[Cupid Enhanced] Featured Question:', result);
+
+        if (result?.data?.me?.recommendedQuestions?.featuredQuestionWithMatches) {
+            const featured = result.data.me.recommendedQuestions.featuredQuestionWithMatches;
+            const question = featured.question?.question;
+            console.log('[Cupid Enhanced] Question:', question?.text);
+            console.log('[Cupid Enhanced] Your answer index:', featured.questionAnswer);
+            console.log('[Cupid Enhanced] Matches:', featured.matches?.data?.length ?? 0);
+        }
+
+        return result;
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to get featured question:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * Get basic profile information for a user
+ * Fetches display name, age, location, match percentage, and primary image
+ *
+ * @param {string} targetId - The user ID to get profile info for
+ * @returns {Promise<object>} Match profile data
+ *
+ * @example
+ * const profile = await getMatchProfile('wA6EHJCyH2XVc-YAeKAb9g2');
+ * console.log(profile.data.me.match.user.displayname);
+ */
+async function getMatchProfile(targetId) {
+    const query = `fragment ProfileHead on User {
+  id
+  displayname
+  age
+  userLocation {
+    id
+    publicName
+    __typename
+  }
+  __typename
+}
+
+fragment UserPrimaryImagesFragment on User {
+  primaryImage {
+    id
+    caption
+    original
+    square60
+    square82
+    square100
+    square120
+    square160
+    square225
+    square400
+    square800
+    __typename
+  }
+  __typename
+}
+
+fragment PublicProfileActionBar on Match {
+  matchPercent
+  user {
+    id
+    displayname
+    username
+    ...UserPrimaryImagesFragment
+    __typename
+  }
+  __typename
+}
+
+query WebMatchProfileDesktopWrapper($targetId: String!) {
+  me {
+    id
+    match(id: $targetId) {
+      ...PublicProfileActionBar
+      user {
+        id
+        ...ProfileHead
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}`;
+
+    const variables = { targetId };
+
+    try {
+        console.log('[Cupid Enhanced] Fetching match profile for:', targetId);
+        const result = await okcupidGraphQL('WebMatchProfileDesktopWrapper', query, variables);
+        console.log('[Cupid Enhanced] Match Profile:', result);
+
+        if (result?.data?.me?.match) {
+            const match = result.data.me.match;
+            const user = match.user;
+            console.log('[Cupid Enhanced] Name:', user?.displayname);
+            console.log('[Cupid Enhanced] Age:', user?.age);
+            console.log('[Cupid Enhanced] Location:', user?.userLocation?.publicName);
+            console.log('[Cupid Enhanced] Match %:', match.matchPercent);
+        }
+
+        return result;
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to get match profile:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * Get a conversation thread with a specific user
+ * Fetches all messages exchanged with the correspondent
+ *
+ * @param {string} targetId - The user ID of the person you're chatting with
+ * @param {number} limit - Number of messages to fetch (default: 50)
+ * @param {string} before - Pagination cursor for older messages (optional)
+ * @returns {Promise<object>} Conversation thread data with messages
+ *
+ * @example
+ * // Get conversation from URL: /messages/12345678 -> targetId is 12345678
+ * const thread = await getConversationThread('12345678');
+ *
+ * @example
+ * // Get more messages with pagination
+ * const thread = await getConversationThread('12345678', 100);
+ */
+async function getConversationThread(targetId, limit = 50, before = null) {
+    const query = `fragment GifFragment on GifMedia {
+  width
+  height
+  url
+  __typename
+}
+
+fragment PhotoInfo on Photo {
+  id
+  caption
+  original
+  square60
+  square82
+  square100
+  square120
+  square160
+  square225
+  square400
+  square800
+  __typename
+}
+
+fragment MessageAttachmentFragment on Attachment {
+  __typename
+  ... on GifResult {
+    id
+    vendor
+    gif {
+      ...GifFragment
+      __typename
+    }
+    medium {
+      ...GifFragment
+      __typename
+    }
+    tiny {
+      ...GifFragment
+      __typename
+    }
+    nano {
+      ...GifFragment
+      __typename
+    }
+    __typename
+  }
+  ... on ProfileCommentPhoto {
+    type
+    photo {
+      ...PhotoInfo
+      __typename
+    }
+    __typename
+  }
+  ... on ProfileCommentInstagramPhoto {
+    type
+    instagramPhoto {
+      caption
+      original
+      __typename
+    }
+    __typename
+  }
+  ... on ProfileCommentEssay {
+    type
+    essayTitle
+    essayText
+    __typename
+  }
+  ... on ReactionUpdate {
+    updateType
+    __typename
+  }
+  ... on Reaction {
+    reaction
+    senderId
+    __typename
+  }
+}
+
+fragment MessageAttachmentsFragment on Message {
+  attachments {
+    ...MessageAttachmentFragment
+    __typename
+  }
+  __typename
+}
+
+fragment CorrespondentFragment on Match {
+  targetLikes
+  isMutualLike
+  targetVote
+  senderVote
+  matchPercent
+  targetLikeViaSuperBoost
+  targetLikeViaSpotlight
+  senderBlocked
+  firstMessage {
+    text
+    __typename
+  }
+  user {
+    id
+    displayname
+    isOnline
+    photos {
+      ...PhotoInfo
+      __typename
+    }
+    __typename
+  }
+  firstMessage {
+    id
+    text
+    threadId
+    ...MessageAttachmentsFragment
+    __typename
+  }
+  __typename
+}
+
+fragment MessageFragment on Message {
+  id
+  senderId
+  threadId
+  text
+  time
+  readTime
+  ...MessageAttachmentsFragment
+  __typename
+}
+
+fragment ConversationThreadFragment on ConversationThread {
+  id
+  status
+  pageInfo {
+    hasMore
+    total
+    __typename
+  }
+  showScammerWarning
+  showContentWarning
+  showFeedbackAgentWarning
+  showFullInboxWarning
+  canMessage
+  isReadReceiptActivated
+  correspondent {
+    ...CorrespondentFragment
+    __typename
+  }
+  messages {
+    ...MessageFragment
+    __typename
+  }
+  __typename
+}
+
+query WebConversationThread($targetId: ID!, $limit: Int, $before: String, $isPolled: Boolean) {
+  me {
+    id
+    conversationThread(
+      targetId: $targetId
+      limit: $limit
+      before: $before
+      isPolled: $isPolled
+    ) {
+      ...ConversationThreadFragment
+      __typename
+    }
+    __typename
+  }
+}`;
+
+    const variables = {
+        targetId: targetId,
+        isPolled: false,
+        ...(limit && { limit }),
+        ...(before && { before })
+    };
+
+    try {
+        console.log('[Cupid Enhanced] Fetching conversation thread for:', targetId);
+        const result = await okcupidGraphQL('WebConversationThread', query, variables);
+        console.log('[Cupid Enhanced] Conversation Thread Response:', result);
+
+        if (result?.data?.me?.conversationThread) {
+            const thread = result.data.me.conversationThread;
+            const correspondent = thread.correspondent;
+            const messages = thread.messages || [];
+
+            console.log('[Cupid Enhanced] ═══════════════════════════════════════');
+            console.log('[Cupid Enhanced] Conversation with:', correspondent?.user?.displayname);
+            console.log('[Cupid Enhanced] User ID:', correspondent?.user?.id);
+            console.log('[Cupid Enhanced] Match %:', correspondent?.matchPercent);
+            console.log('[Cupid Enhanced] Mutual Like:', correspondent?.isMutualLike);
+            console.log('[Cupid Enhanced] Can Message:', thread.canMessage);
+            console.log('[Cupid Enhanced] Read Receipt Active:', thread.isReadReceiptActivated);
+            console.log('[Cupid Enhanced] Total Messages:', thread.pageInfo?.total);
+            console.log('[Cupid Enhanced] ───────────────────────────────────────');
+
+            // Display messages in a readable format (reverse to show oldest first)
+            const sortedMessages = [...messages].reverse();
+            sortedMessages.forEach((msg) => {
+                const isFromMe = msg.senderId === result.data.me.id;
+                const direction = isFromMe ? '→ You' : '← Them';
+                const time = new Date(msg.time).toLocaleString();
+                console.log(`[Cupid Enhanced] ${direction} (${time}): ${msg.text}`);
+            });
+
+            console.log('[Cupid Enhanced] ═══════════════════════════════════════');
+
+            if (thread.pageInfo?.hasMore) {
+                const oldestMsg = messages[messages.length - 1];
+                console.log('[Cupid Enhanced] More messages available. Use before:', oldestMsg?.id);
+            }
+        }
+
+        return result;
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to get conversation thread:', error.message);
+        throw error;
     }
 }
 
@@ -634,13 +1105,15 @@ function listenForSettingsUpdates() {
         }
     });
 
-    window.addEventListener('message', (event) => {
-        if (event.source === window && event.data.type === 'REQUEST_SETTINGS') {
+    window.addEventListener('message', async (event) => {
+        if (event.source !== window) return;
+
+        if (event.data.type === 'REQUEST_SETTINGS') {
             sendSettingsToMainWorld();
         }
 
         // Forward captured headers from MAIN world to background service worker
-        if (event.source === window && event.data.type === 'OKCUPID_HEADERS_CAPTURED') {
+        if (event.data.type === 'OKCUPID_HEADERS_CAPTURED') {
             chrome.runtime.sendMessage({
                 type: 'OKCUPID_HEADERS_UPDATE',
                 headers: event.data.headers
@@ -648,6 +1121,58 @@ function listenForSettingsUpdates() {
                 // Ignore errors when background is not ready
                 console.debug('[Cupid Enhanced] Header update pending:', err.message);
             });
+        }
+
+        // Handle Console API requests from MAIN world
+        if (event.data.type === 'CUPID_API_REQUEST') {
+            const { id, action, payload } = event.data;
+
+            try {
+                let result;
+
+                switch (action) {
+                    case 'getTokenCounts':
+                        result = await getTokenCounts();
+                        break;
+                    case 'getLikesCap':
+                        result = await getLikesCap();
+                        break;
+                    case 'getFeaturedQuestion':
+                        result = await getFeaturedQuestion(payload.excludedUserIds);
+                        break;
+                    case 'getMatchProfile':
+                        result = await getMatchProfile(payload.targetId);
+                        break;
+                    case 'getConversationThread':
+                        result = await getConversationThread(payload.targetId, payload.limit, payload.before);
+                        break;
+                    case 'vote':
+                        result = await voteOnUser(payload.targetId, payload.vote, payload.voteSource);
+                        break;
+                    case 'graphQL':
+                        result = await okcupidGraphQL(payload.operationName, payload.query, payload.variables);
+                        break;
+                    case 'request':
+                        result = await okcupidAPI(payload.url, payload.options);
+                        break;
+                    default:
+                        throw new Error(`Unknown action: ${action}`);
+                }
+
+                window.postMessage({
+                    type: 'CUPID_API_RESPONSE',
+                    id,
+                    success: true,
+                    data: result
+                }, '*');
+            } catch (error) {
+                window.postMessage({
+                    type: 'CUPID_API_RESPONSE',
+                    id,
+                    success: false,
+                    error: error.message
+                }, '*');
+            }
         }
     });
 }

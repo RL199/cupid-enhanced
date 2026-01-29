@@ -23,23 +23,33 @@ async function getOkCupidCookies() {
 
 /**
  * Make an authenticated request to OkCupid API
+ * Supports all HTTP methods: GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH
+ * 
  * @param {string} url - The API endpoint URL
- * @param {object} options - Request options (method, body, headers)
+ * @param {object} options - Request options
+ * @param {string} options.method - HTTP method (default: 'POST')
+ * @param {object|string} options.body - Request body (only for POST, PUT, PATCH)
+ * @param {object} options.headers - Additional headers
  * @returns {Promise<object>} Response data
  */
 async function makeOkCupidRequest(url, options = {}) {
     const cookieString = await getOkCupidCookies();
+    const method = (options.method || 'POST').toUpperCase();
     
     // Default headers for OkCupid API
     const defaultHeaders = {
         'accept': '*/*',
         'accept-language': 'en-US,en;q=0.9',
-        'content-type': 'application/json',
         'x-okcupid-locale': 'en',
         'x-okcupid-platform': 'DESKTOP',
         'Origin': 'https://www.okcupid.com',
         'Referer': 'https://www.okcupid.com/'
     };
+
+    // Only add content-type for methods that have a body
+    if (['POST', 'PUT', 'PATCH'].includes(method) && options.body) {
+        defaultHeaders['content-type'] = 'application/json';
+    }
 
     // Merge headers: defaults < captured headers < request-specific headers
     const headers = {
@@ -53,19 +63,50 @@ async function makeOkCupidRequest(url, options = {}) {
         headers['Cookie'] = cookieString;
     }
 
+    // Build fetch options
+    const fetchOptions = {
+        method: method,
+        headers: headers,
+        credentials: 'include'
+    };
+
+    // Only add body for methods that support it
+    if (['POST', 'PUT', 'PATCH'].includes(method) && options.body) {
+        fetchOptions.body = typeof options.body === 'string' 
+            ? options.body 
+            : JSON.stringify(options.body);
+    }
+
     try {
-        const response = await fetch(url, {
-            method: options.method || 'POST',
-            headers: headers,
-            body: options.body ? JSON.stringify(options.body) : undefined,
-            credentials: 'include'
-        });
+        console.log('[Cupid Enhanced] Making request to:', url);
+        console.log('[Cupid Enhanced] Request options:', JSON.stringify(fetchOptions, null, 2).substring(0, 500));
+        const response = await fetch(url, fetchOptions);
+
+        // For HEAD and OPTIONS, return status info
+        if (['HEAD', 'OPTIONS'].includes(method)) {
+            return { 
+                success: true, 
+                data: { 
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries())
+                }
+            };
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
+        // Try to parse as JSON, fall back to text
+        const contentType = response.headers.get('content-type');
+        let data;
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = await response.text();
+        }
+        
         return { success: true, data };
     } catch (error) {
         console.error('[Cupid Enhanced] API Request failed:', error);
