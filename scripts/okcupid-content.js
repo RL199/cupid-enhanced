@@ -215,28 +215,33 @@ async function init() {
         enableDarkMode();
     }
 
-    // Test API request after a short delay to allow headers to be captured
-    setTimeout(testLikesCapApi, 3000);
+    // Fetch and display likes cap data after a short delay to allow headers to be captured
+    setTimeout(fetchAndDisplayLikesCap, 3000);
 }
 
 /**
- * Test function to verify API requests are working
- * Fetches likes cap info from OkCupid API through background service worker
+ * Fetch likes cap data and update the UI on page load
+ * Retrieves current likes remaining and reset time from OkCupid API
+ * and displays them in the extension UI
  */
-async function testLikesCapApi() {
+async function fetchAndDisplayLikesCap() {
     try {
-        console.log('[Cupid Enhanced] Testing API request...');
         const result = await getLikesCap();
-        console.log('[Cupid Enhanced] Likes Cap API Response:', result);
 
         if (result?.data?.me?.likesCap) {
             const likesCap = result.data.me.likesCap;
-            console.log('[Cupid Enhanced] Likes Remaining:', likesCap.likesRemaining);
-            console.log(
-                '[Cupid Enhanced] Reset Time:',
-                likesCap.resetTime ? new Date(likesCap.resetTime).toLocaleString() : 'N/A'
-            );
-            console.log('[Cupid Enhanced] View Count:', likesCap.viewCount);
+
+            // Update the UI with initial likes data
+            if (likesCap.likesRemaining !== undefined) {
+                localStorage.setItem(STORAGE_KEYS.likesRemaining, likesCap.likesRemaining);
+                updateElementText('likes-remaining', `Likes Remaining: ${likesCap.likesRemaining} (max 500)`);
+            }
+
+            if (likesCap.resetTime) {
+                const readableTime = new Date(likesCap.resetTime).toLocaleString();
+                localStorage.setItem(STORAGE_KEYS.likesResetTime, readableTime);
+                updateElementText('likes-reset-time', `Next Likes Reset: ${readableTime}`);
+            }
         }
     } catch (error) {
         console.error('[Cupid Enhanced] API test failed:', error.message);
