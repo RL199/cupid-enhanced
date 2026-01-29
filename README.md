@@ -8,7 +8,7 @@
     <img src="https://img.shields.io/github/v/release/RL199/cupid-enhanced?style=for-the-badge&include_prereleases&color=FF7AB3" alt="version">
   </a>
   <a href="https://github.com/RL199/cupid-enhanced/releases">
-    <img src="https://img.shields.io/github/release-date/RL199/cupid-enhanced?style=for-the-badge&color=FF7AB3" alt="release date">
+    <img src="https://img.shields.io/github/release-date/RL199/cupid-enhanced?style=for-the-badge&color=FF7AB3" alt="last release">
   </a>
   <a href="https://github.com/RL199/cupid-enhanced/releases">
     <img src="https://img.shields.io/github/downloads/RL199/cupid-enhanced/total?style=for-the-badge&color=FF7AB3" alt="downloads">
