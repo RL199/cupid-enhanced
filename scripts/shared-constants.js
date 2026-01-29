@@ -31,7 +31,7 @@ const HEADERS_TO_CAPTURE = [
 // Analytics operations to block (GraphQL)
 const BLOCKED_OPERATIONS = [
     'WebLogAnalyticsEvents',
-    'webLogAnalyticsEvents',
+    'webLogAnalyticsEvents'
     // 'WebE2PStaffbar', // Staff tracking
     // 'WebUpdateStats', // Stats tracking
     // 'webUpdateStats'

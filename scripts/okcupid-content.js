@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 console.log('###Cupid content script loaded###');
 
@@ -35,23 +35,26 @@ async function okcupidAPI(url, options = {}) {
         : `https://e2p-okapi.api.okcupid.com${url.startsWith('/') ? '' : '/'}${url}`;
 
     return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-            type: 'OKCUPID_API_REQUEST',
-            url: fullUrl,
-            options: {
-                method: options.method || 'POST',
-                body: options.body,
-                headers: options.headers
+        chrome.runtime.sendMessage(
+            {
+                type: 'OKCUPID_API_REQUEST',
+                url: fullUrl,
+                options: {
+                    method: options.method || 'POST',
+                    body: options.body,
+                    headers: options.headers
+                }
+            },
+            response => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else if (response?.success) {
+                    resolve(response.data);
+                } else {
+                    reject(new Error(response?.error || 'Unknown error'));
+                }
             }
-        }, response => {
-            if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError.message));
-            } else if (response?.success) {
-                resolve(response.data);
-            } else {
-                reject(new Error(response?.error || 'Unknown error'));
-            }
-        });
+        );
     });
 }
 
@@ -145,13 +148,15 @@ async function voteOnUser(targetId, vote = 'LIKE', voteSource = 'DOUBLETAKE') {
 
     const variables = {
         input: {
-            votes: [{
-                targetId: targetId,
-                vote: vote.toUpperCase(),
-                voteSource: voteSource,
-                userMetadata: null,
-                comment: null
-            }]
+            votes: [
+                {
+                    targetId: targetId,
+                    vote: vote.toUpperCase(),
+                    voteSource: voteSource,
+                    userMetadata: null,
+                    comment: null
+                }
+            ]
         }
     };
 
@@ -164,7 +169,6 @@ async function voteOnUser(targetId, vote = 'LIKE', voteSource = 'DOUBLETAKE') {
         throw error;
     }
 }
-
 
 // =============================================================================
 // State
@@ -197,11 +201,7 @@ function displayConsoleLogo() {
 
 `;
 
-    console.log(
-        logo,
-        'color: #ff1493; font-weight: bold;'
-
-    );
+    console.log(logo, 'color: #ff1493; font-weight: bold;');
 }
 
 async function init() {
@@ -232,7 +232,10 @@ async function testLikesCapApi() {
         if (result?.data?.me?.likesCap) {
             const likesCap = result.data.me.likesCap;
             console.log('[Cupid Enhanced] Likes Remaining:', likesCap.likesRemaining);
-            console.log('[Cupid Enhanced] Reset Time:', likesCap.resetTime ? new Date(likesCap.resetTime).toLocaleString() : 'N/A');
+            console.log(
+                '[Cupid Enhanced] Reset Time:',
+                likesCap.resetTime ? new Date(likesCap.resetTime).toLocaleString() : 'N/A'
+            );
             console.log('[Cupid Enhanced] View Count:', likesCap.viewCount);
         }
     } catch (error) {
@@ -909,7 +912,7 @@ query WebConversationThread($targetId: ID!, $limit: Int, $before: String, $isPol
 
             // Display messages in a readable format (reverse to show oldest first)
             const sortedMessages = [...messages].reverse();
-            sortedMessages.forEach((msg) => {
+            sortedMessages.forEach(msg => {
                 const isFromMe = msg.senderId === result.data.me.id;
                 const direction = isFromMe ? '→ You' : '← Them';
                 const time = new Date(msg.time).toLocaleString();
@@ -944,7 +947,7 @@ function setupEventListeners() {
 }
 
 function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (event) => {
+    document.addEventListener('keydown', event => {
         if (event.ctrlKey && event.key === 'Enter') {
             const sendLikeButton = document.querySelector(SELECTORS.sendButton);
             sendLikeButton?.click();
@@ -954,7 +957,7 @@ function setupKeyboardShortcuts() {
 }
 
 function setupPassButtonListener() {
-    document.addEventListener('click', (event) => {
+    document.addEventListener('click', event => {
         const actionButton = event.target.closest(SELECTORS.actionButton);
         if (actionButton) {
             resetPhotoDateDisplay();
@@ -1009,7 +1012,7 @@ function disableDarkMode() {
 // =============================================================================
 
 function listenForLikesData() {
-    window.addEventListener('message', (event) => {
+    window.addEventListener('message', event => {
         if (event.source !== window) return;
 
         const { type, count, time } = event.data;
@@ -1037,7 +1040,7 @@ function updateElementText(id, text) {
 // =============================================================================
 
 function setupHorizontalScroll() {
-    const scrollHandler = (event) => {
+    const scrollHandler = event => {
         if (!currentSettings.horizontalScroll) return;
 
         // Check if we're in the fullscreen photo modal
@@ -1050,9 +1053,10 @@ function setupHorizontalScroll() {
         // Default discover page horizontal scroll
         if (event.deltaY !== 0) return;
 
-        const button = event.deltaX < 0
-            ? document.querySelector(SELECTORS.prevButton)
-            : document.querySelector(SELECTORS.nextButton);
+        const button =
+            event.deltaX < 0
+                ? document.querySelector(SELECTORS.prevButton)
+                : document.querySelector(SELECTORS.nextButton);
 
         button?.click();
     };
@@ -1097,7 +1101,7 @@ function sendSettingsToMainWorld() {
 }
 
 function listenForSettingsUpdates() {
-    chrome.runtime.onMessage.addListener((message) => {
+    chrome.runtime.onMessage.addListener(message => {
         if (message.type === 'SETTINGS_UPDATED') {
             currentSettings = message.settings;
             sendSettingsToMainWorld();
@@ -1105,7 +1109,7 @@ function listenForSettingsUpdates() {
         }
     });
 
-    window.addEventListener('message', async (event) => {
+    window.addEventListener('message', async event => {
         if (event.source !== window) return;
 
         if (event.data.type === 'REQUEST_SETTINGS') {
@@ -1114,13 +1118,15 @@ function listenForSettingsUpdates() {
 
         // Forward captured headers from MAIN world to background service worker
         if (event.data.type === 'OKCUPID_HEADERS_CAPTURED') {
-            chrome.runtime.sendMessage({
-                type: 'OKCUPID_HEADERS_UPDATE',
-                headers: event.data.headers
-            }).catch(err => {
-                // Ignore errors when background is not ready
-                console.debug('[Cupid Enhanced] Header update pending:', err.message);
-            });
+            chrome.runtime
+                .sendMessage({
+                    type: 'OKCUPID_HEADERS_UPDATE',
+                    headers: event.data.headers
+                })
+                .catch(err => {
+                    // Ignore errors when background is not ready
+                    console.debug('[Cupid Enhanced] Header update pending:', err.message);
+                });
         }
 
         // Handle Console API requests from MAIN world
@@ -1159,19 +1165,25 @@ function listenForSettingsUpdates() {
                         throw new Error(`Unknown action: ${action}`);
                 }
 
-                window.postMessage({
-                    type: 'CUPID_API_RESPONSE',
-                    id,
-                    success: true,
-                    data: result
-                }, '*');
+                window.postMessage(
+                    {
+                        type: 'CUPID_API_RESPONSE',
+                        id,
+                        success: true,
+                        data: result
+                    },
+                    '*'
+                );
             } catch (error) {
-                window.postMessage({
-                    type: 'CUPID_API_RESPONSE',
-                    id,
-                    success: false,
-                    error: error.message
-                }, '*');
+                window.postMessage(
+                    {
+                        type: 'CUPID_API_RESPONSE',
+                        id,
+                        success: false,
+                        error: error.message
+                    },
+                    '*'
+                );
             }
         }
     });
@@ -1356,7 +1368,7 @@ async function fetchAllImageMetadata() {
 
     try {
         const results = await Promise.all(
-            photoUrls.map(async (url) => ({
+            photoUrls.map(async url => ({
                 url: getBaseImageUrl(url),
                 lastModified: await fetchImageLastModified(url)
             }))
@@ -1397,11 +1409,12 @@ function updatePhotoDateDisplay() {
         return;
     }
 
-    const formatDate = (date) => date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
+    const formatDate = date =>
+        date.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
 
     setPhotoDateText(newestElement, oldestElement, formatDate(photoDates.at(-1)), formatDate(photoDates[0]));
 }
@@ -1528,7 +1541,7 @@ async function saveVisitedProfile(userId, photoUrl, name, age, location) {
 
         // Remove existing entry for this user (handling both string and object formats)
         profiles = profiles.filter(p => {
-            const id = (typeof p === 'object' && p !== null) ? p.userId : p;
+            const id = typeof p === 'object' && p !== null ? p.userId : p;
             return id !== userId;
         });
 
