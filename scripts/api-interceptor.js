@@ -9,6 +9,52 @@
         staffMode: false
     };
 
+    // =============================================================================
+    // Header Capture for Background Script API Requests
+    // =============================================================================
+    
+    // Headers we want to capture from OkCupid requests
+    const HEADERS_TO_CAPTURE = [
+        'authorization',
+        'x-okcupid-auth-v',
+        'x-okcupid-device-id',
+        'x-okcupid-locale',
+        'x-okcupid-platform',
+        'x-okcupid-version'
+    ];
+
+    // Store captured headers
+    let capturedHeaders = {};
+
+    /**
+     * Extract and store headers from a request
+     * @param {Headers|object} headers - Request headers
+     */
+    function captureHeaders(headers) {
+        if (!headers) return;
+        
+        const headersObj = headers instanceof Headers 
+            ? Object.fromEntries(headers.entries())
+            : headers;
+
+        let updated = false;
+        for (const [key, value] of Object.entries(headersObj)) {
+            const lowerKey = key.toLowerCase();
+            if (HEADERS_TO_CAPTURE.includes(lowerKey) && value) {
+                capturedHeaders[key] = value;
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            // Send captured headers to isolated world (which forwards to background)
+            window.postMessage({
+                type: 'OKCUPID_HEADERS_CAPTURED',
+                headers: capturedHeaders
+            }, '*');
+        }
+    }
+
     // Listen for settings from isolated world
     window.addEventListener('message', (event) => {
         if (event.source === window && event.data.type === 'SETTINGS_TO_MAIN') {
@@ -239,6 +285,11 @@
     // Intercept fetch to modify request payloads (for experiment overrides)
     window.fetch = async function (input, init) {
         const url = typeof input === 'string' ? input : input.url;
+
+        // Capture headers from OkCupid API requests
+        if (url.includes('okcupid.com') && init?.headers) {
+            captureHeaders(init.headers);
+        }
 
         // Block QA/test server requests that cause DNS errors
         if (url.includes('qa1.match.com') || url.includes('qa2.match.com')) {

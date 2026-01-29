@@ -3,6 +3,79 @@
 console.log('###Cupid content script loaded###');
 
 // =============================================================================
+// API Helper Functions (communicates with background service worker)
+// =============================================================================
+
+/**
+ * Make a GraphQL request to OkCupid API through the background service worker
+ * This bypasses CORS restrictions since the request originates from the extension
+ * @param {string} operationName - GraphQL operation name
+ * @param {string} query - GraphQL query string
+ * @param {object} variables - GraphQL variables (optional)
+ * @returns {Promise<object>} Response data
+ */
+async function okcupidGraphQL(operationName, query, variables = {}) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            type: 'OKCUPID_GRAPHQL_REQUEST',
+            operationName,
+            query,
+            variables
+        }, response => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+            } else if (response?.success) {
+                resolve(response.data);
+            } else {
+                reject(new Error(response?.error || 'Unknown error'));
+            }
+        });
+    });
+}
+
+/**
+ * Make a raw API request to OkCupid through the background service worker
+ * @param {string} url - Full URL to request
+ * @param {object} options - Request options (method, body, headers)
+ * @returns {Promise<object>} Response data
+ */
+async function okcupidRequest(url, options = {}) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            type: 'OKCUPID_API_REQUEST',
+            url,
+            options
+        }, response => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+            } else if (response?.success) {
+                resolve(response.data);
+            } else {
+                reject(new Error(response?.error || 'Unknown error'));
+            }
+        });
+    });
+}
+
+/**
+ * Get likes cap information from OkCupid API
+ * @returns {Promise<object>} Likes cap data
+ */
+async function getLikesCap() {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'GET_LIKES_CAP' }, response => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+            } else if (response?.success) {
+                resolve(response.data);
+            } else {
+                reject(new Error(response?.error || 'Unknown error'));
+            }
+        });
+    });
+}
+
+// =============================================================================
 // Constants
 // =============================================================================
 
@@ -361,6 +434,30 @@ async function init() {
     if (currentSettings.darkMode) {
         enableDarkMode();
     }
+
+    // Test API request after a short delay to allow headers to be captured
+    setTimeout(testLikesCapApi, 3000);
+}
+
+/**
+ * Test function to verify API requests are working
+ * Fetches likes cap info from OkCupid API through background service worker
+ */
+async function testLikesCapApi() {
+    try {
+        console.log('[Cupid Enhanced] Testing API request...');
+        const result = await getLikesCap();
+        console.log('[Cupid Enhanced] Likes Cap API Response:', result);
+        
+        if (result?.data?.me?.likesCap) {
+            const likesCap = result.data.me.likesCap;
+            console.log('[Cupid Enhanced] Likes Remaining:', likesCap.likesRemaining);
+            console.log('[Cupid Enhanced] Reset Time:', likesCap.resetTime ? new Date(likesCap.resetTime).toLocaleString() : 'N/A');
+            console.log('[Cupid Enhanced] View Count:', likesCap.viewCount);
+        }
+    } catch (error) {
+        console.error('[Cupid Enhanced] API test failed:', error.message);
+    }
 }
 
 // =============================================================================
@@ -540,6 +637,17 @@ function listenForSettingsUpdates() {
     window.addEventListener('message', (event) => {
         if (event.source === window && event.data.type === 'REQUEST_SETTINGS') {
             sendSettingsToMainWorld();
+        }
+
+        // Forward captured headers from MAIN world to background service worker
+        if (event.source === window && event.data.type === 'OKCUPID_HEADERS_CAPTURED') {
+            chrome.runtime.sendMessage({
+                type: 'OKCUPID_HEADERS_UPDATE',
+                headers: event.data.headers
+            }).catch(err => {
+                // Ignore errors when background is not ready
+                console.debug('[Cupid Enhanced] Header update pending:', err.message);
+            });
         }
     });
 }
