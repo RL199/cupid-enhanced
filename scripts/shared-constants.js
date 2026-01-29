@@ -1,5 +1,7 @@
 // Shared constants for Cupid Enhanced
-// This file is loaded by both popup.js and okcupid-content.js
+// This file is loaded by popup.js, okcupid-content.js, and api-interceptor.js
+// Note: When loaded in MAIN world (api-interceptor.js), this runs in a separate context
+// from ISOLATED world (okcupid-content.js), so constants are duplicated but not shared
 
 const SETTINGS_KEY = 'cupidEnhancedSettings';
 
@@ -12,7 +14,254 @@ const DEFAULT_SETTINGS = {
     anonymousMessageRead: false
 };
 
-// Content script constants
+// =============================================================================
+// API Interceptor Constants (MAIN world)
+// =============================================================================
+
+// Headers we want to capture from OkCupid requests
+const HEADERS_TO_CAPTURE = [
+    'authorization',
+    'x-okcupid-auth-v',
+    'x-okcupid-device-id',
+    'x-okcupid-locale',
+    'x-okcupid-platform',
+    'x-okcupid-version'
+];
+
+// Analytics operations to block (GraphQL)
+const BLOCKED_OPERATIONS = [
+    'WebLogAnalyticsEvents',
+    'webLogAnalyticsEvents',
+    // 'WebE2PStaffbar', // Staff tracking
+    // 'WebUpdateStats', // Stats tracking
+    // 'webUpdateStats'
+];
+
+// URLs to block entirely (Cloudflare, analytics, etc.)
+const BLOCKED_URLS = [
+    '/cdn-cgi/rum', // Cloudflare Real User Monitoring
+    'cloudflareinsights.com', // Cloudflare analytics beacon
+    '/beacon.min.js', // Cloudflare beacon script
+    'google-analytics.com',
+    'googletagmanager.com',
+    'facebook.com/tr', // Facebook pixel
+    'doubleclick.net',
+    'hotjar.com',
+    'amplitude.com',
+    'mixpanel.com',
+    'segment.io',
+    'sentry.io'
+];
+
+// Premium features found in module 88074 (lowercase and uppercase variants)
+const PREMIUM_FEATURES = [
+    'intoyou', 'INTO_YOU',
+    'comfree', 'ad_free', 'AD_FREE', 'ADFREE',
+    'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
+    'intros', 'INTROS',
+    'dealbreakers', 'DEALBREAKERS',
+    'see_more_people', 'SEE_MORE_PEOPLE',
+    'questions', 'QUESTIONS',
+    'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
+    'rewind', 'REWIND',
+    'question_search', 'QUESTION_SEARCH',
+    'who_likes_you', 'see_who_likes_you', 'SEE_WHO_LIKES_YOU',
+    'question_answers', 'QUESTION_ANSWERS',
+    'likes_list_sort', 'LIKES_LIST_SORT',
+    'priority_likes', 'PRIORITY_LIKES',
+    'read_receipts', 'READ_RECEIPTS',
+    'passport', 'PASSPORT',
+    'boost', 'BOOST',
+    'super_boost', 'SUPER_BOOST',
+    'views', 'VIEWS',
+    'profile_visitors', 'PROFILE_VISITORS',
+    'match_search', 'MATCH_SEARCH',
+    'advanced_filters', 'ADVANCED_FILTERS',
+    'message_filters', 'MESSAGE_FILTERS'
+];
+
+// =============================================================================
+// Content script constants (ISOLATED world)
+// =============================================================================
+
+// OkCupid API - Available GraphQL Operations
+const OKCUPID_OPERATIONS = {
+    // Queries
+    queries: {
+        // User/Profile
+        WebGetIdForUsername: 'WebGetIdForUsername',
+        WebGetUserData: 'WebGetUserData',
+        WebProfilePublic: 'WebProfilePublic',
+        WebGetPublicProfileDetails: 'WebGetPublicProfileDetails',
+        WebUserPublicPhotos: 'WebUserPublicPhotos',
+        WebGetMatchPercentage: 'WebGetMatchPercentage',
+        WebMatchProfileDesktopWrapper: 'WebMatchProfileDesktopWrapper',
+        WebMatchProfileQuestionsEntry: 'WebMatchProfileQuestionsEntry',
+        WebGetSelfieVerificationStatus: 'WebGetSelfieVerificationStatus',
+
+        // Likes/Matches
+        userrowsIncomingLikes: 'userrowsIncomingLikes',
+        userrowsOutgoingLikes: 'userrowsOutgoingLikes',
+        userrowsIntros: 'userrowsIntros',
+        getUserrowsTabCounts: 'getUserrowsTabCounts',
+        WebLikesCap: 'WebLikesCap',
+
+        // Stacks/Discover
+        WebStack: 'WebStack',
+        WebStackUsers: 'WebStackUsers',
+        WebJustForYouStack: 'WebJustForYouStack',
+        WebInitialStackData: 'WebInitialStackData',
+        WebStacksMenu: 'WebStacksMenu',
+        WebStacksSelfData: 'WebStacksSelfData',
+
+        // Messages
+        WebGetMessagesMain: 'WebGetMessagesMain',
+        WebConversationThread: 'WebConversationThread',
+        WebMessengerOverflowMenu: 'WebMessengerOverflowMenu',
+
+        // Questions
+        WebGetNextQuestion: 'WebGetNextQuestion',
+        WebGetQuestionAnswerForUser: 'WebGetQuestionAnswerForUser',
+        WebQuestionSearch: 'WebQuestionSearch',
+        WebQuestionSearchMatches: 'WebQuestionSearchMatches',
+        WebQuestionSearchFeaturedQuestion: 'WebQuestionSearchFeaturedQuestion',
+        WebQuestionSearchLanding: 'WebQuestionSearchLanding',
+        WebQuestionSearchRecommendedQuestions: 'WebQuestionSearchRecommendedQuestions',
+        WebCompatibilityQuestion: 'WebCompatibilityQuestion',
+        WebGetBinaryQuestions: 'WebGetBinaryQuestions',
+
+        // Settings/Preferences
+        WebGetGlobalPreferences: 'WebGetGlobalPreferences',
+        WebSettingsPage: 'WebSettingsPage',
+        WebGetSettingsEmail: 'WebGetSettingsEmail',
+        WebGetUserGuide: 'WebGetUserGuide',
+        webStepsToSuccess: 'webStepsToSuccess',
+
+        // Billing
+        WebBillingUpgradeEligibility: 'WebBillingUpgradeEligibility',
+        WebGetRateCard: 'WebGetRateCard',
+
+        // Other
+        WebGetGatekeeper: 'WebGetGatekeeper',
+        webGetExperiment: 'webGetExperiment',
+        WebQuickmatchNotifications: 'WebQuickmatchNotifications',
+        WebLocationQuery: 'WebLocationQuery',
+        WebLocationNearest: 'WebLocationNearest',
+        WebGetStaffbarUserInfo: 'WebGetStaffbarUserInfo',
+        WebProfilePillButtonsDataQuery: 'WebProfilePillButtonsDataQuery',
+        getUserPhotosForSelfview: 'getUserPhotosForSelfview'
+    },
+
+    // Mutations
+    mutations: {
+        // Voting/Likes
+        WebUserVote: 'WebUserVote',
+        WebUserSuperlike: 'WebUserSuperlike',
+
+        // Messages
+        WebConversationMessageSend: 'WebConversationMessageSend',
+        WebConversationMessageRead: 'WebConversationMessageRead',
+        WebMatchEventSendMessage: 'WebMatchEventSendMessage',
+
+        // Questions
+        WebAnswerQuestion: 'WebAnswerQuestion',
+        WebSkipQuestion: 'WebSkipQuestion',
+        WebAnswerCompatibilityQuestion: 'WebAnswerCompatibilityQuestion',
+        WebSkipCompatibilityQuestion: 'WebSkipCompatibilityQuestion',
+
+        // User Actions
+        WebBlockUser: 'WebBlockUser',
+        WebUnblockUser: 'WebUnblockUser',
+        WebUnmatchUser: 'WebUnmatchUser',
+        WebUserReportSubmit: 'WebUserReportSubmit',
+        WebUnreportUser: 'WebUnreportUser',
+        WebMarkMatchRead: 'WebMarkMatchRead',
+        WebMarViewed: 'WebMarViewed',
+
+        // Photos
+        WebUserRemovePhoto: 'WebUserRemovePhoto',
+        WebOnboardingRemovePhoto: 'WebOnboardingRemovePhoto',
+        userUpdatePhotoOrder: 'userUpdatePhotoOrder',
+        userUpdatePhotoCaption: 'userUpdatePhotoCaption',
+        OnboardingOrderPhotos: 'OnboardingOrderPhotos',
+
+        // Settings
+        WebSavePreference: 'WebSavePreference',
+        WebUpdatePrivacySettings: 'WebUpdatePrivacySettings',
+        WebUpdateDeviceLocation: 'WebUpdateDeviceLocation',
+        WebUpdateUnitPreference: 'WebUpdateUnitPreference',
+        WebMarkUserGuideAsSeen: 'WebMarkUserGuideAsSeen',
+
+        // Auth
+        WebLoginWithEmail: 'WebLoginWithEmail',
+        WebRefreshToken: 'WebRefreshToken',
+        WebAnonToken: 'WebAnonToken',
+        WebSmsInitiate: 'WebSmsInitiate',
+        WebSmsAuthenticate: 'WebSmsAuthenticate',
+        WebPhone2FAInitiate: 'WebPhone2FAInitiate',
+        WebPhone2FAAuthenticate: 'WebPhone2FAAuthenticate',
+        WebEmail2FA: 'WebEmail2FA',
+        authOTPSend: 'authOTPSend',
+        authTSPRefreshTokenCreate: 'authTSPRefreshTokenCreate',
+
+        // Billing/Payments
+        WebInitPaypal: 'WebInitPaypal',
+        purchaseWithPayPal: 'purchaseWithPayPal',
+        WebSavePayPalToken: 'WebSavePayPalToken',
+        WebAdyenCCPurchase: 'WebAdyenCCPurchase',
+        WebUpdateAdyenCreditCard: 'WebUpdateAdyenCreditCard',
+        WebPurchaseWithStoredPayment: 'WebPurchaseWithStoredPayment',
+        WebRemoveStoredPaymentMethod: 'WebRemoveStoredPaymentMethod',
+        webUpgradeSubscription: 'webUpgradeSubscription',
+        WebTicketExchange: 'WebTicketExchange',
+        webIncrementRateCardViews: 'webIncrementRateCardViews',
+
+        // Analytics/Tracking
+        WebLog: 'WebLog',
+        WebLogAnalyticsEvents: 'WebLogAnalyticsEvents',
+        WebUpdateStats: 'WebUpdateStats',
+        WebViewTrackingIncrement: 'WebViewTrackingIncrement',
+        WebMarkExperiment: 'WebMarkExperiment',
+        WebSetExperimentGroup: 'WebSetExperimentGroup',
+        WebEventAttributionTrack: 'WebEventAttributionTrack',
+        WebPaymentConfirmationTrack: 'WebPaymentConfirmationTrack',
+        WebPaymentEntryTrack: 'WebPaymentEntryTrack',
+        WebRateCardViewedTrack: 'WebRateCardViewedTrack',
+        WebSessionCrm: 'WebSessionCrm',
+
+        // Boost
+        markBoostReportSeen: 'markBoostReportSeen',
+        WebMarkBoostReportSeen: 'WebMarkBoostReportSeen',
+        activateReadReceipt: 'activateReadReceipt',
+
+        // xMatch/Transfer
+        WebXTransferCreate: 'WebXTransferCreate',
+        WebXMatchTransferStart: 'WebXMatchTransferStart',
+        WebxMatchTransferComplete: 'WebxMatchTransferComplete',
+        WebxMatchTransferImpression: 'WebxMatchTransferImpression',
+        WebxMatchTransferPresented: 'WebxMatchTransferPresented',
+        WebxMatchMoreSites: 'WebxMatchMoreSites',
+        WebxMatchMoreSitesImpression: 'WebxMatchMoreSitesImpression',
+        WebxMatchMoreSitesPresented: 'WebxMatchMoreSitesPresented',
+        WebxMatchMoreSitesSelected: 'WebxMatchMoreSitesSelected',
+
+        // Staffbar (Admin)
+        WebStaffbarLoginAsThem: 'WebStaffbarLoginAsThem',
+        WebStaffbarSendLike: 'WebStaffbarSendLike',
+        WebStaffbarSendSuperLike: 'WebStaffbarSendSuperLike',
+        WebStaffbarSendShortMessage: 'WebStaffbarSendShortMessage',
+        WebStaffbarSendLongMessage: 'WebStaffbarSendLongMessage',
+        WebStaffbarSetIpCountryOverride: 'WebStaffbarSetIpCountryOverride',
+        WebStaffbarUpdateOpenModel: 'WebStaffbarUpdateOpenModel',
+
+        // Other
+        WebFinishOnboarding: 'WebFinishOnboarding',
+        WebAccountReactivate: 'WebAccountReactivate',
+        updateGuestLandingPath: 'updateGuestLandingPath',
+        updateGuestReferrer: 'updateGuestReferrer'
+    }
+};
+
 const STORAGE_KEYS = {
     likesRemaining: 'previous_likes_remaining',
     likesResetTime: 'likes_reset_time',

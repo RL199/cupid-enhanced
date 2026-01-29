@@ -38,6 +38,7 @@
                 "https://www.okcupid.com/*"
             ],
             "js": [
+                "scripts/shared-constants.js",
                 "scripts/api-interceptor.js"
             ],
             "run_at": "document_start",

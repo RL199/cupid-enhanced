@@ -4,7 +4,6 @@
 
     console.log('###Cupid Enhanced: API Interceptor Loaded###');
 
-    const SETTINGS_KEY = 'cupidEnhancedSettings';
     let settings = {
         staffMode: false,
         anonymousMessageRead: false
@@ -13,16 +12,6 @@
     // =============================================================================
     // Header Capture for Background Script API Requests
     // =============================================================================
-
-    // Headers we want to capture from OkCupid requests
-    const HEADERS_TO_CAPTURE = [
-        'authorization',
-        'x-okcupid-auth-v',
-        'x-okcupid-device-id',
-        'x-okcupid-locale',
-        'x-okcupid-platform',
-        'x-okcupid-version'
-    ];
 
     // Store captured headers
     let capturedHeaders = {};
@@ -205,33 +194,7 @@
 
 
         // Premium features found in module 88074 (lowercase and uppercase variants)
-        const features = [
-            'intoyou', 'INTO_YOU',
-            'comfree', 'ad_free', 'AD_FREE', 'ADFREE',
-            'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
-            'intros', 'INTROS',
-            'dealbreakers', 'DEALBREAKERS',
-            'see_more_people', 'SEE_MORE_PEOPLE',
-            'questions', 'QUESTIONS',
-            'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
-            'rewind', 'REWIND',
-            'question_search', 'QUESTION_SEARCH',
-            'who_likes_you', 'see_who_likes_you', 'SEE_WHO_LIKES_YOU',
-            'question_answers', 'QUESTION_ANSWERS',
-            'likes_list_sort', 'LIKES_LIST_SORT',
-            'priority_likes', 'PRIORITY_LIKES',
-            'read_receipts', 'READ_RECEIPTS',
-            'passport', 'PASSPORT',
-            'boost', 'BOOST',
-            'super_boost', 'SUPER_BOOST',
-            'views', 'VIEWS',
-            'profile_visitors', 'PROFILE_VISITORS',
-            'match_search', 'MATCH_SEARCH',
-            'advanced_filters', 'ADVANCED_FILTERS',
-            'message_filters', 'MESSAGE_FILTERS'
-        ];
-
-        features.forEach(feature => {
+        PREMIUM_FEATURES.forEach(feature => {
             me.premiums[feature] = true;
         });
 
@@ -298,7 +261,7 @@
         }
 
         // Block tracking/analytics URLs entirely
-        if (blockedUrls.some(blocked => url.includes(blocked))) {
+        if (BLOCKED_URLS.some(blocked => url.includes(blocked))) {
             return new Response('', { status: 200 });
         }
 
@@ -323,7 +286,7 @@
                         headers: { 'Content-Type': 'application/json' }
                     });
                 }
-                if (blockedOperations.includes(body.operationName)) {
+                if (BLOCKED_OPERATIONS.includes(body.operationName)) {
                     // Return a fake successful response
                     return new Response(JSON.stringify({ data: null }), {
                         status: 200,
