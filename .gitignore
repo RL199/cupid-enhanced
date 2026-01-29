@@ -1,5 +1,4 @@
 # IDE folders
-.vscode/
 .idea/
 .hintrc
 svg-assets/
@@ -7,3 +6,11 @@ svg-assets/
 source files/
 python-scripts/
 notes/
+
+# config files
+.vscode/
+.eslintrc.json
+.prettierrc
+
+# Generated files
+installed-extensions.txt
