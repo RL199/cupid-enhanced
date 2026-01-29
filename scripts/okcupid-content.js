@@ -216,7 +216,7 @@ async function init() {
     }
 
     // Fetch and display likes cap data after a short delay to allow headers to be captured
-    setTimeout(fetchAndDisplayLikesCap, 3000);
+    setTimeout(fetchAndDisplayLikesCap, 100);
 }
 
 /**
