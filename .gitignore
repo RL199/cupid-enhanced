@@ -3,6 +3,7 @@
 .hintrc
 svg-assets/
 .github/copilot-instructions.md
+.github/agents/
 source files/
 python-scripts/
 notes/
