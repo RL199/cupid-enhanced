@@ -24,7 +24,7 @@ async function getOkCupidCookies() {
 /**
  * Make an authenticated request to OkCupid API
  * Supports all HTTP methods: GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH
- * 
+ *
  * @param {string} url - The API endpoint URL
  * @param {object} options - Request options
  * @param {string} options.method - HTTP method (default: 'POST')
@@ -35,15 +35,15 @@ async function getOkCupidCookies() {
 async function makeOkCupidRequest(url, options = {}) {
     const cookieString = await getOkCupidCookies();
     const method = (options.method || 'POST').toUpperCase();
-    
+
     // Default headers for OkCupid API
     const defaultHeaders = {
-        'accept': '*/*',
+        accept: '*/*',
         'accept-language': 'en-US,en;q=0.9',
         'x-okcupid-locale': 'en',
         'x-okcupid-platform': 'DESKTOP',
-        'Origin': 'https://www.okcupid.com',
-        'Referer': 'https://www.okcupid.com/'
+        Origin: 'https://www.okcupid.com',
+        Referer: 'https://www.okcupid.com/'
     };
 
     // Only add content-type for methods that have a body
@@ -72,9 +72,7 @@ async function makeOkCupidRequest(url, options = {}) {
 
     // Only add body for methods that support it
     if (['POST', 'PUT', 'PATCH'].includes(method) && options.body) {
-        fetchOptions.body = typeof options.body === 'string' 
-            ? options.body 
-            : JSON.stringify(options.body);
+        fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
     }
 
     try {
@@ -84,9 +82,9 @@ async function makeOkCupidRequest(url, options = {}) {
 
         // For HEAD and OPTIONS, return status info
         if (['HEAD', 'OPTIONS'].includes(method)) {
-            return { 
-                success: true, 
-                data: { 
+            return {
+                success: true,
+                data: {
                     status: response.status,
                     statusText: response.statusText,
                     headers: Object.fromEntries(response.headers.entries())
@@ -106,7 +104,7 @@ async function makeOkCupidRequest(url, options = {}) {
         } else {
             data = await response.text();
         }
-        
+
         return { success: true, data };
     } catch (error) {
         console.error('[Cupid Enhanced] API Request failed:', error);
@@ -123,7 +121,7 @@ async function makeOkCupidRequest(url, options = {}) {
  */
 async function graphqlRequest(operationName, query, variables = {}) {
     const url = 'https://e2p-okapi.api.okcupid.com/graphql/' + operationName;
-    
+
     return makeOkCupidRequest(url, {
         method: 'POST',
         body: {
@@ -185,7 +183,7 @@ query WebLikesCap {
     __typename
   }
 }`;
-        
+
         graphqlRequest('WebLikesCap', query, {})
             .then(result => sendResponse(result))
             .catch(error => sendResponse({ success: false, error: error.message }));

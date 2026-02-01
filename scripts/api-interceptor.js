@@ -504,6 +504,16 @@
             sendToContentScript('getConversationThread', { targetId, limit, before }),
 
         /**
+         * Get all conversations and matches (Messages Main)
+         * @param {string} userId - The current user's ID
+         * @param {string} [filter='ALL'] - Filter type: 'ALL', 'REPLIES', 'MATCHES'
+         * @param {string} [after] - Pagination cursor for more results
+         * @returns {Promise<object>}
+         */
+        getMessagesMain: (userId, filter = 'ALL', after = null) =>
+            sendToContentScript('getMessagesMain', { userId, filter, after }),
+
+        /**
          * Vote on a user (like/pass)
          * @param {string} targetId - User ID to vote on
          * @param {string} vote - Vote type: 'LIKE', 'PASS', or 'SUPERLIKE'
@@ -558,6 +568,12 @@ Available commands:
   - Optional 2nd param: number of messages (default: 50)
   - Optional 3rd param: pagination cursor for older messages
 
+%cawait cupidAPI.getMessagesMain('USER_ID')%c
+  - Get all conversations and matches
+  - 1st param: your user ID (required)
+  - Optional 2nd param: filter ('ALL', 'REPLIES', 'MATCHES')
+  - Optional 3rd param: pagination cursor for more results
+
 %cawait cupidAPI.vote('USER_ID', 'LIKE')%c
   - Vote on a user: 'LIKE', 'PASS', or 'SUPERLIKE'
   - Optional 3rd param: voteSource (default: 'INCOMING_LIKES_SUPERLIKE_INTRO')
@@ -574,6 +590,7 @@ Available commands:
 `,
                 'color: #ff1493; font-size: 16px; font-weight: bold;',
                 '',
+                'color: #00bfff; font-family: monospace;', '',
                 'color: #00bfff; font-family: monospace;', '',
                 'color: #00bfff; font-family: monospace;', '',
                 'color: #00bfff; font-family: monospace;', '',

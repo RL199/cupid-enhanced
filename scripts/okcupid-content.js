@@ -939,6 +939,217 @@ query WebConversationThread($targetId: ID!, $limit: Int, $before: String, $isPol
     }
 }
 
+/**
+ * Get all conversations and matches (Messages Main)
+ * Fetches the list of all conversations, matches, and intros
+ *
+ * @param {string} userId - The current user's ID (required)
+ * @param {string} filter - Filter type: 'ALL', 'REPLIES', 'MATCHES' (default: 'ALL')
+ * @param {string} after - Pagination cursor for more results (optional)
+ * @returns {Promise<object>} Conversations and matches data
+ *
+ * @example
+ * // Get all messages for current user
+ * const messages = await getMessagesMain('14cAht3gR2YjiDMvh6cvYA2');
+ *
+ * @example
+ * // Get messages where it's your turn to reply
+ * const yourTurn = await getMessagesMain('14cAht3gR2YjiDMvh6cvYA2', 'REPLIES');
+ */
+async function getMessagesMain(userId, filter = 'ALL', after = null) {
+    const query = `fragment UserPrimaryImagesFragment on User {
+  primaryImage {
+    id
+    caption
+    original
+    square60
+    square82
+    square100
+    square120
+    square160
+    square225
+    square400
+    square800
+    __typename
+  }
+  __typename
+}
+
+fragment ConversationMatch on Match {
+  senderLikeTime
+  senderVote
+  targetLikeTime
+  targetVote
+  targetLikeViaSpotlight
+  targetLikeViaSuperBoost
+  senderMessageTime
+  targetMessageTime
+  matchPercent
+  user {
+    id
+    displayname
+    username
+    age
+    isOnline
+    ...UserPrimaryImagesFragment
+    __typename
+  }
+  __typename
+}
+
+fragment ConversationFragment on Conversation {
+  threadid
+  time
+  isUnread
+  sentTime
+  receivedTime
+  status
+  correspondent {
+    ...ConversationMatch
+    __typename
+  }
+  snippet {
+    text
+    sender {
+      id
+      __typename
+    }
+    __typename
+  }
+  attachmentPreviews {
+    ... on ReactionUpdate {
+      originalMessage
+      reaction
+      updateType
+      __typename
+    }
+    ... on GifAttachmentPreview {
+      id
+      __typename
+    }
+    ... on PhotoAttachmentPreview {
+      id
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment MutualMatchFragment on MutualMatch {
+  status
+  isUnread
+  match {
+    ...ConversationMatch
+    __typename
+  }
+  __typename
+}
+
+fragment NotificationCountsFragment on User {
+  notificationCounts {
+    likesMutual
+    likesIncoming
+    likesAndViews
+    messages
+    intros
+    __typename
+  }
+  __typename
+}
+
+fragment ConversationsAndMatches on User {
+  ...NotificationCountsFragment
+  conversationsAndMatches(filter: $filter, after: $after) {
+    data {
+      ...ConversationFragment
+      ...MutualMatchFragment
+      __typename
+    }
+    pageInfo {
+      hasMore
+      after
+      total
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+query WebGetMessagesMain($userid: String!, $filter: ConversationsAndMatchesFilter!, $after: String) {
+  user(id: $userid) {
+    id
+    ...ConversationsAndMatches
+    __typename
+  }
+}`;
+
+    const variables = {
+        userid: userId,
+        filter: filter,
+        ...(after && { after })
+    };
+
+    try {
+        console.log('[Cupid Enhanced] Fetching messages main for user:', userId, 'filter:', filter);
+        const result = await okcupidGraphQL('WebGetMessagesMain', query, variables);
+        console.log('[Cupid Enhanced] Messages Main Response:', result);
+
+        if (result?.data?.user) {
+            const userData = result.data.user;
+            const conversationsData = userData.conversationsAndMatches;
+            const notifications = userData.notificationCounts;
+
+            console.log('[Cupid Enhanced] ═══════════════════════════════════════');
+            console.log('[Cupid Enhanced] Messages Main Summary');
+            console.log('[Cupid Enhanced] ───────────────────────────────────────');
+            console.log('[Cupid Enhanced] Notification Counts:');
+            console.log('[Cupid Enhanced]   - Mutual Likes:', notifications?.likesMutual ?? 'N/A');
+            console.log('[Cupid Enhanced]   - Incoming Likes:', notifications?.likesIncoming ?? 'N/A');
+            console.log('[Cupid Enhanced]   - Messages:', notifications?.messages ?? 'N/A');
+            console.log('[Cupid Enhanced]   - Intros:', notifications?.intros ?? 'N/A');
+            console.log('[Cupid Enhanced] ───────────────────────────────────────');
+
+            const items = conversationsData?.data || [];
+            console.log('[Cupid Enhanced] Total Items:', conversationsData?.pageInfo?.total ?? items.length);
+            console.log('[Cupid Enhanced] Has More:', conversationsData?.pageInfo?.hasMore ?? false);
+
+            if (items.length > 0) {
+                console.log('[Cupid Enhanced] ───────────────────────────────────────');
+                console.log('[Cupid Enhanced] Conversations/Matches:');
+                items.forEach((item, index) => {
+                    if (item.__typename === 'Conversation') {
+                        const correspondent = item.correspondent;
+                        const user = correspondent?.user;
+                        const unread = item.isUnread ? ' [UNREAD]' : '';
+                        console.log(`[Cupid Enhanced] ${index + 1}. ${user?.displayname || 'Unknown'} (${user?.age || '?'})${unread}`);
+                        console.log(`[Cupid Enhanced]    ID: ${user?.id || 'N/A'}, Match: ${correspondent?.matchPercent || 0}%`);
+                        console.log(`[Cupid Enhanced]    Last: "${item.snippet?.text?.substring(0, 50) || ''}..."`);
+                    } else if (item.__typename === 'MutualMatch') {
+                        const match = item.match;
+                        const user = match?.user;
+                        const unread = item.isUnread ? ' [UNREAD]' : '';
+                        console.log(`[Cupid Enhanced] ${index + 1}. [MATCH] ${user?.displayname || 'Unknown'} (${user?.age || '?'})${unread}`);
+                        console.log(`[Cupid Enhanced]    ID: ${user?.id || 'N/A'}, Match: ${match?.matchPercent || 0}%`);
+                    }
+                });
+            }
+
+            console.log('[Cupid Enhanced] ═══════════════════════════════════════');
+
+            if (conversationsData?.pageInfo?.hasMore && conversationsData?.pageInfo?.after) {
+                console.log('[Cupid Enhanced] More items available. Use after:', conversationsData.pageInfo.after);
+            }
+        }
+
+        return result;
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to get messages main:', error.message);
+        throw error;
+    }
+}
+
 // =============================================================================
 // Event Listeners Setup
 // =============================================================================
@@ -1156,6 +1367,9 @@ function listenForSettingsUpdates() {
                         break;
                     case 'getConversationThread':
                         result = await getConversationThread(payload.targetId, payload.limit, payload.before);
+                        break;
+                    case 'getMessagesMain':
+                        result = await getMessagesMain(payload.userId, payload.filter, payload.after);
                         break;
                     case 'vote':
                         result = await voteOnUser(payload.targetId, payload.vote, payload.voteSource);
