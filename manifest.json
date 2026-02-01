@@ -35,7 +35,7 @@
     "content_scripts": [
         {
             "matches": [
-                "https://www.okcupid.com/*"
+                "https://*.okcupid.com/*"
             ],
             "js": [
                 "scripts/api-interceptor.js"
@@ -46,7 +46,7 @@
         },
         {
             "matches": [
-                "https://www.okcupid.com/*"
+                "https://*.okcupid.com/*"
             ],
             "js": [
                 "scripts/shared-constants.js",
