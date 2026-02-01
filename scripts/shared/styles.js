@@ -246,4 +246,26 @@ var LIKES_YOU_STYLES = `
         width: 100% !important;
         display: block !important;
     }
+
+    .cupid-open-profile-icon {
+        position: absolute;
+        top: 8px;
+        right: 4px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #e00095;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    .cupid-open-profile-icon svg {
+        width: 16px;
+        height: 16px;
+        fill: #ffffff;
+    }
 `;

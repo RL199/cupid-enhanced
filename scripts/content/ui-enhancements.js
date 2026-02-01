@@ -14,6 +14,8 @@ var observers = {};
 var imageMetadataCache = {};
 var isFetchingMetadata = false;
 var lastFetchedUserId = null;
+var likesProfileMap = {};
+var likesProfileMapLoaded = false;
 
 // =============================================================================
 // Style Injection Helpers
@@ -51,7 +53,7 @@ function listenForLikesData() {
     window.addEventListener('message', event => {
         if (event.source !== window) return;
 
-        const { type, count, time, userId } = event.data;
+        const { type, count, time, userId, entries } = event.data;
 
         if (type === 'LIKES_REMAINING_COUNT') {
             localStorage.setItem(STORAGE_KEYS.likesRemaining, count);
@@ -68,12 +70,62 @@ function listenForLikesData() {
         if (type === 'OKCUPID_USER_ID' && userId) {
             currentUserId = userId;
         }
+
+        if (type === 'LIKES_PROFILE_CURSOR_MAP' && Array.isArray(entries) && entries.length > 0) {
+            updateLikesProfileMap(entries);
+        }
     });
 }
 
 function updateElementText(id, text) {
     const element = document.getElementById(id);
     if (element) element.textContent = text;
+}
+
+// =============================================================================
+// Likes You Profile Mapping
+// =============================================================================
+
+async function loadLikesProfileMap() {
+    if (likesProfileMapLoaded || !isExtensionContextValid()) return;
+
+    try {
+        const result = await chrome.storage.local.get([STORAGE_KEYS.likesProfileMap]);
+        likesProfileMap = result[STORAGE_KEYS.likesProfileMap] || {};
+        likesProfileMapLoaded = true;
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to load likes profile map:', error.message);
+    }
+}
+
+function updateLikesProfileMap(entries) {
+    if (!isExtensionContextValid()) return;
+
+    let updated = false;
+
+    entries.forEach(entry => {
+        const imageUrl = normalizeImageUrl(entry?.imageUrl);
+        const profileId = entry?.profileId;
+        if (!imageUrl || !profileId) return;
+
+        if (likesProfileMap[imageUrl] !== profileId) {
+            likesProfileMap[imageUrl] = profileId;
+            updated = true;
+        }
+    });
+
+    if (updated) {
+        chrome.storage.local
+            .set({ [STORAGE_KEYS.likesProfileMap]: likesProfileMap })
+            .catch(error => {
+                console.error('[Cupid Enhanced] Failed to persist likes profile map:', error.message);
+            });
+    }
+}
+
+function normalizeImageUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    return url.split('?')[0];
 }
 
 // =============================================================================
@@ -326,9 +378,80 @@ function enhanceLikesYouPage() {
 
     injectStyles('cupid-likes-you-styles', LIKES_YOU_STYLES);
 
+    loadLikesProfileMap();
+
+    const observer = createBodyObserver(() => {
+        if (!currentSettings.enhanceLikesYouPage) return;
+        decorateLikesYouCards();
+    });
+
     return {
-        disconnect: () => removeStyles('cupid-likes-you-styles')
+        disconnect: () => {
+            observer?.disconnect();
+            removeStyles('cupid-likes-you-styles');
+        }
     };
+}
+
+function decorateLikesYouCards() {
+    const likesContainer = document.querySelector('[data-cy="likesPage.whoLikesYouContent"]');
+    if (!likesContainer) return;
+
+    const cards = likesContainer.querySelectorAll('a.WYYTav9yXPiJZmvkljJB, .incoming-likes-voting-list a');
+
+    cards.forEach(card => {
+        if (!card.dataset.cupidProfileBound) {
+            card.dataset.cupidProfileBound = 'true';
+            card.addEventListener('click', event => {
+                const profileId = card.dataset.cupidProfileId;
+                if (!profileId) return;
+
+                event.preventDefault();
+                event.stopPropagation();
+                window.location.href = `https://www.okcupid.com/profile/${profileId}`;
+            }, true);
+        }
+
+        const imageEl = card.querySelector('[style*="background-image"]');
+        const style = imageEl?.getAttribute('style') || '';
+        const match = style.match(BACKGROUND_IMAGE_REGEX);
+        const imageUrl = normalizeImageUrl(match?.[1]);
+        if (!imageUrl) return;
+
+        const profileId = likesProfileMap[imageUrl];
+        if (!profileId) return;
+
+        const profileUrl = `https://www.okcupid.com/profile/${profileId}`;
+
+        if (card.dataset.cupidProfileId !== profileId) {
+            card.dataset.cupidProfileId = profileId;
+            card.href = profileUrl;
+            card.removeAttribute('target');
+            card.removeAttribute('rel');
+        }
+
+        if (card.querySelector('.cupid-open-profile-icon')) return;
+
+        const icon = document.createElement('button');
+        icon.type = 'button';
+        icon.className = 'cupid-open-profile-icon';
+        icon.setAttribute('aria-label', 'Open profile in new tab');
+        icon.innerHTML = `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z"></path>
+                <path d="M5 5h6V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6h-2v6H5V5z"></path>
+            </svg>
+        `;
+
+        icon.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.location.href = profileUrl;
+        });
+
+        card.style.position = 'relative';
+        card.appendChild(icon);
+    });
 }
 
 function applyStylesToElements(enhancements) {

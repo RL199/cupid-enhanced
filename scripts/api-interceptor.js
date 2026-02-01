@@ -85,6 +85,10 @@
     // Store last broadcast user ID to avoid redundant messages
     let lastBroadcastUserId = null;
 
+    // Track latest likes pagination cursor from requests
+    let lastLikesRequestCursor = null;
+    let lastLikesRequestOperation = null;
+
     /**
      * Extract and store headers from a request
      * @param {Headers|object} headers - Request headers
@@ -110,6 +114,76 @@
             window.postMessage({
                 type: 'OKCUPID_HEADERS_CAPTURED',
                 headers: capturedHeaders
+            }, '*');
+        }
+    }
+
+    function normalizeImageUrl(url) {
+        if (!url || typeof url !== 'string') return null;
+        return url.split('?')[0];
+    }
+
+    function safeBase64Decode(value) {
+        if (!value || typeof value !== 'string') return null;
+        try {
+            return atob(value);
+        } catch {
+            return null;
+        }
+    }
+
+    function extractLikesImageUrl(item) {
+        if (!item || typeof item !== 'object') return null;
+
+        if (item.user?.primaryImage?.square225) return item.user.primaryImage.square225;
+        if (item.user?.primaryImage?.original) return item.user.primaryImage.original;
+
+        if (item.primaryImage?.square225) return item.primaryImage.square225;
+        if (item.primaryImage?.original) return item.primaryImage.original;
+
+        if (item.primaryImageBlurred?.square225) return item.primaryImageBlurred.square225;
+
+        return null;
+    }
+
+    function collectLikesProfileMappings(data) {
+        const likes = data?.data?.me?.likes;
+        if (!likes?.data || !Array.isArray(likes.data) || likes.data.length === 0) return;
+
+        const entries = [];
+        const afterCursor = likes.pageInfo?.after;
+        const decodedAfter = safeBase64Decode(afterCursor);
+
+        if (decodedAfter) {
+            const lastItem = likes.data[likes.data.length - 1];
+            const lastImage = normalizeImageUrl(extractLikesImageUrl(lastItem));
+            if (lastImage) {
+                entries.push({ profileId: decodedAfter, imageUrl: lastImage, cursor: afterCursor });
+            }
+        }
+
+        if (lastLikesRequestCursor) {
+            const decodedRequest = safeBase64Decode(lastLikesRequestCursor);
+            const firstItem = likes.data[0];
+            const firstImage = normalizeImageUrl(extractLikesImageUrl(firstItem));
+            if (decodedRequest && firstImage) {
+                entries.push({ profileId: decodedRequest, imageUrl: firstImage, cursor: lastLikesRequestCursor });
+            }
+        }
+
+        likes.data.forEach(item => {
+            const userId = item?.user?.id;
+            const imageUrl = normalizeImageUrl(extractLikesImageUrl(item));
+            if (userId && imageUrl) {
+                entries.push({ profileId: userId, imageUrl });
+            }
+        });
+
+        if (entries.length > 0) {
+            window.postMessage({
+                type: 'LIKES_PROFILE_CURSOR_MAP',
+                operation: lastLikesRequestOperation,
+                entries
             }, '*');
         }
     }
@@ -411,6 +485,8 @@
             handleLikes(data);
             if (handlePremium(data)) modified = true;
             if (handleUnblur(data)) modified = true;
+
+            collectLikesProfileMappings(data);
 
             if (modified) {
                 return JSON.stringify(data);
