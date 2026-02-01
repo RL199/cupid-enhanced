@@ -9,16 +9,8 @@
         "48": "assets/icons/icon-48.png",
         "128": "assets/icons/icon-128.png"
     },
-    "permissions": [
-        "storage",
-        "tabs",
-        "cookies"
-    ],
-    "host_permissions": [
-        "https://www.okcupid.com/*",
-        "https://*.okcupid.com/*",
-        "https://e2p-okapi.api.okcupid.com/*"
-    ],
+    "permissions": ["storage", "tabs", "cookies"],
+    "host_permissions": ["https://www.okcupid.com/*", "https://*.okcupid.com/*", "https://e2p-okapi.api.okcupid.com/*"],
     "action": {
         "default_popup": "popup/popup.html",
         "default_icon": {
@@ -34,23 +26,25 @@
     },
     "content_scripts": [
         {
-            "matches": [
-                "https://*.okcupid.com/*"
-            ],
-            "js": [
-                "scripts/api-interceptor.js"
-            ],
+            "matches": ["https://*.okcupid.com/*"],
+            "js": ["scripts/api-interceptor.js"],
             "run_at": "document_start",
             "all_frames": true,
             "world": "MAIN"
         },
         {
-            "matches": [
-                "https://*.okcupid.com/*"
-            ],
+            "matches": ["https://*.okcupid.com/*"],
             "js": [
-                "scripts/shared-constants.js",
-                "scripts/okcupid-content.js"
+                "scripts/shared/settings.js",
+                "scripts/shared/graphql-operations.js",
+                "scripts/shared/selectors.js",
+                "scripts/shared/styles.js",
+                "scripts/content/api-helpers.js",
+                "scripts/content/graphql-queries.js",
+                "scripts/content/photo-upload.js",
+                "scripts/content/ui-enhancements.js",
+                "scripts/content/doubletake-buttons.js",
+                "scripts/content/content-main.js"
             ],
             "run_at": "document_start",
             "all_frames": true
