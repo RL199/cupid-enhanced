@@ -3,6 +3,23 @@
 console.log('###Cupid content script loaded###');
 
 // =============================================================================
+// Extension Context Validity Check
+// =============================================================================
+
+/**
+ * Check if the extension context is still valid.
+ * Returns false if the extension has been reloaded/updated while the page is still open.
+ * @returns {boolean} True if extension context is valid
+ */
+function isExtensionContextValid() {
+    try {
+        return !!chrome.runtime?.id;
+    } catch {
+        return false;
+    }
+}
+
+// =============================================================================
 // API Helper Functions (communicates with background service worker)
 // =============================================================================
 
@@ -226,6 +243,9 @@ async function init() {
  * Fetch likes cap data and update the UI on page load
  * Retrieves current likes remaining and reset time from OkCupid API
  * and displays them in the extension UI
+ *
+ * Note: This may fail with 403 if called before authorization headers are captured.
+ * The likes data will be updated when the user makes a vote action.
  */
 async function fetchAndDisplayLikesCap() {
     try {
@@ -247,7 +267,11 @@ async function fetchAndDisplayLikesCap() {
             }
         }
     } catch (error) {
-        console.error('[Cupid Enhanced] API test failed:', error.message);
+        // 403 errors are expected if auth headers aren't captured yet
+        // The UI will update when the user performs a vote action
+        if (!error.message?.includes('403')) {
+            console.error('[Cupid Enhanced] API test failed:', error.message);
+        }
     }
 }
 
@@ -1187,14 +1211,11 @@ async function uploadPhotoToOkCupid(file, settings) {
                 // Load the image to get dimensions and resize if needed
                 const img = new Image();
                 img.onload = async () => {
-                    // Create canvas for resizing
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-
                     // Calculate new dimensions (maintain aspect ratio)
                     let { width, height } = img;
+                    const needsResize = width > maxDimension || height > maxDimension;
 
-                    if (width > maxDimension || height > maxDimension) {
+                    if (needsResize) {
                         if (width > height) {
                             height = Math.round((height / width) * maxDimension);
                             width = maxDimension;
@@ -1204,13 +1225,10 @@ async function uploadPhotoToOkCupid(file, settings) {
                         }
                     }
 
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    // Draw image with high quality
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    ctx.drawImage(img, 0, 0, width, height);
+                    // Check if we can skip re-encoding (same format and no resize needed)
+                    const inputIsJpeg = file.type === 'image/jpeg' || file.type === 'image/jpg';
+                    const outputIsJpeg = outputFormat === 'image/jpeg';
+                    const canSkipReencode = inputIsJpeg && outputIsJpeg && !needsResize;
 
                     // Determine file extension based on format
                     const extMap = {
@@ -1220,48 +1238,87 @@ async function uploadPhotoToOkCupid(file, settings) {
                     };
                     const ext = extMap[outputFormat] || '.jpg';
 
+                    /**
+                     * Helper to upload the final blob
+                     * @param {Blob} blob - The image blob to upload
+                     * @param {string} mimeType - The MIME type of the blob
+                     */
+                    const uploadBlob = async (blob, mimeType) => {
+                        // Check blob size - Chrome message limit is 64MiB, base64 adds ~33% overhead
+                        // Limit to 45MB raw data to stay safely under the limit
+                        const MAX_BLOB_SIZE = 45 * 1024 * 1024; // 45MB
+                        if (blob.size > MAX_BLOB_SIZE) {
+                            reject(new Error(
+                                `Image is too large (${(blob.size / 1024 / 1024).toFixed(1)}MB). ` +
+                                `Please reduce the max dimension or quality settings, or use JPEG format.`
+                            ));
+                            return;
+                        }
+
+                        // Convert blob to base64
+                        const base64Reader = new FileReader();
+                        base64Reader.onload = async () => {
+                            const base64Data = base64Reader.result.split(',')[1];
+
+                            // Get user ID
+                            const userId = await getCurrentUserId();
+                            if (!userId) {
+                                reject(new Error('Could not determine user ID. Please refresh the page.'));
+                                return;
+                            }
+
+                            // Send to background script for upload
+                            chrome.runtime.sendMessage(
+                                {
+                                    type: 'UPLOAD_PHOTO',
+                                    photoData: {
+                                        imageBase64: base64Data,
+                                        mimeType: mimeType,
+                                        filename: file.name.replace(/\.[^.]+$/, ext),
+                                        userId: userId,
+                                        width: width,
+                                        height: height
+                                    }
+                                },
+                                response => {
+                                    if (chrome.runtime.lastError) {
+                                        reject(new Error(chrome.runtime.lastError.message));
+                                    } else if (response?.success) {
+                                        resolve(response);
+                                    } else {
+                                        reject(new Error(response?.error || 'Upload failed'));
+                                    }
+                                }
+                            );
+                        };
+                        base64Reader.onerror = () => reject(new Error('Failed to encode image'));
+                        base64Reader.readAsDataURL(blob);
+                    };
+
+                    // Skip canvas re-encoding if input is JPEG, output is JPEG, and no resize needed
+                    if (canSkipReencode) {
+                        console.log('[Cupid Enhanced] Skipping re-encode: JPEG to JPEG with no resize');
+                        await uploadBlob(file, file.type);
+                        return;
+                    }
+
+                    // Need to process through canvas (resize or format conversion)
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Draw image with high quality
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+
                     // Convert to blob
                     canvas.toBlob(
                         async blob => {
                             try {
-                                // Convert blob to base64
-                                const base64Reader = new FileReader();
-                                base64Reader.onload = async () => {
-                                    const base64Data = base64Reader.result.split(',')[1];
-
-                                    // Get user ID
-                                    const userId = await getCurrentUserId();
-                                    if (!userId) {
-                                        reject(new Error('Could not determine user ID. Please refresh the page.'));
-                                        return;
-                                    }
-
-                                    // Send to background script for upload
-                                    chrome.runtime.sendMessage(
-                                        {
-                                            type: 'UPLOAD_PHOTO',
-                                            photoData: {
-                                                imageBase64: base64Data,
-                                                mimeType: outputFormat,
-                                                filename: file.name.replace(/\.[^.]+$/, ext),
-                                                userId: userId,
-                                                width: width,
-                                                height: height
-                                            }
-                                        },
-                                        response => {
-                                            if (chrome.runtime.lastError) {
-                                                reject(new Error(chrome.runtime.lastError.message));
-                                            } else if (response?.success) {
-                                                resolve(response);
-                                            } else {
-                                                reject(new Error(response?.error || 'Upload failed'));
-                                            }
-                                        }
-                                    );
-                                };
-                                base64Reader.onerror = () => reject(new Error('Failed to encode image'));
-                                base64Reader.readAsDataURL(blob);
+                                await uploadBlob(blob, outputFormat);
                             } catch (error) {
                                 reject(error);
                             }
@@ -1436,8 +1493,8 @@ function injectPhotoUploadStyles() {
             background: #1a1a1a;
             border-radius: 16px;
             width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
+            max-width: 450px;
+            max-height: 85vh;
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
             display: flex;
@@ -1448,7 +1505,7 @@ function injectPhotoUploadStyles() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: 12px 16px;
             border-bottom: 1px solid #333;
             flex-shrink: 0;
         }
@@ -1456,7 +1513,7 @@ function injectPhotoUploadStyles() {
         .cupid-modal-header h3 {
             margin: 0;
             color: #fff;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .cupid-modal-close {
@@ -1474,17 +1531,17 @@ function injectPhotoUploadStyles() {
         }
 
         .cupid-modal-body {
-            padding: 20px;
+            padding: 12px 16px;
             overflow-y: auto;
             flex: 1;
         }
 
         .cupid-preview-area {
             width: 100%;
-            min-height: 150px;
-            max-height: 300px;
+            min-height: 100px;
+            max-height: 180px;
             border: 2px dashed #444;
-            border-radius: 12px;
+            border-radius: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -1494,22 +1551,23 @@ function injectPhotoUploadStyles() {
 
         .cupid-preview-area p {
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .cupid-preview-area img {
             max-width: 100%;
-            max-height: 400px;
+            max-height: 180px;
             object-fit: contain;
         }
 
         .cupid-upload-info {
-            margin-top: 15px;
-            padding: 12px;
+            margin-top: 10px;
+            padding: 8px 10px;
             background: #252525;
-            border-radius: 8px;
-            font-size: 13px;
+            border-radius: 6px;
+            font-size: 12px;
             color: #aaa;
+            line-height: 1.4;
         }
 
         .cupid-upload-info:empty {
@@ -1517,17 +1575,17 @@ function injectPhotoUploadStyles() {
         }
 
         .cupid-upload-settings {
-            margin-top: 15px;
-            padding: 15px;
+            margin-top: 10px;
+            padding: 10px 12px;
             background: #252525;
-            border-radius: 8px;
+            border-radius: 6px;
         }
 
         .cupid-setting-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .cupid-setting-row:last-child {
@@ -1536,18 +1594,18 @@ function injectPhotoUploadStyles() {
 
         .cupid-setting-row label {
             color: #ccc;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .cupid-setting-row input,
         .cupid-setting-row select {
-            width: 120px;
-            padding: 8px 10px;
+            width: 100px;
+            padding: 6px 8px;
             background: #1a1a1a;
             border: 1px solid #444;
-            border-radius: 6px;
+            border-radius: 4px;
             color: #fff;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .cupid-setting-row input:focus,
@@ -1558,8 +1616,8 @@ function injectPhotoUploadStyles() {
 
         .cupid-modal-footer {
             display: flex;
-            gap: 12px;
-            padding: 20px;
+            gap: 10px;
+            padding: 12px 16px;
             border-top: 1px solid #333;
             flex-shrink: 0;
             background: #1a1a1a;
@@ -1567,10 +1625,10 @@ function injectPhotoUploadStyles() {
 
         .cupid-btn {
             flex: 1;
-            padding: 12px 20px;
+            padding: 10px 16px;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -1616,10 +1674,10 @@ function injectPhotoUploadStyles() {
         }
 
         .cupid-upload-status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 13px;
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
         }
 
         .cupid-upload-status.success {
@@ -1659,15 +1717,6 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
 
     let selectedFile = null;
     let originalImageDimensions = { width: 0, height: 0 };
-    let originalImageDataUrl = null;
-    let estimatedFileSize = null;
-
-    // Helper to format file size
-    const formatFileSize = bytes => {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-    };
 
     // Helper to get current settings from inputs
     const getUploadSettings = () => ({
@@ -1692,43 +1741,8 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
         return { width, height };
     };
 
-    // Calculate estimated file size by rendering to canvas
-    const calculateEstimatedSize = async () => {
-        if (!originalImageDataUrl || !originalImageDimensions.width) return null;
-
-        const settings = getUploadSettings();
-        const { width, height } = calculateFinalDimensions(
-            originalImageDimensions.width,
-            originalImageDimensions.height,
-            settings.maxDimension
-        );
-
-        return new Promise(resolve => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(
-                    blob => {
-                        resolve(blob ? blob.size : null);
-                    },
-                    settings.outputFormat,
-                    settings.quality
-                );
-            };
-            img.onerror = () => resolve(null);
-            img.src = originalImageDataUrl;
-        });
-    };
-
     // Helper to update the info display
-    const updateInfoDisplay = async () => {
+    const updateInfoDisplay = () => {
         if (!selectedFile || !originalImageDimensions.width) return;
         const settings = getUploadSettings();
         const { width, height } = calculateFinalDimensions(
@@ -1743,26 +1757,27 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
                 'image/webp': 'WebP'
             }[settings.outputFormat] || 'JPEG';
 
-        // Show loading state for file size
+        // Check if re-encoding will be skipped
+        const inputIsJpeg = selectedFile.type === 'image/jpeg' || selectedFile.type === 'image/jpg';
+        const outputIsJpeg = settings.outputFormat === 'image/jpeg';
+        const needsResize = originalImageDimensions.width > settings.maxDimension ||
+                           originalImageDimensions.height > settings.maxDimension;
+        const willSkipReencode = inputIsJpeg && outputIsJpeg && !needsResize;
+
+        const formatLine = willSkipReencode
+            ? `<strong>Format:</strong> JPEG (no conversion needed)`
+            : `<strong>Format:</strong> ${selectedFile.type} → ${formatName}`;
+
+        const qualityLine = willSkipReencode
+            ? `<strong>Quality:</strong> Original (preserved)`
+            : `<strong>Quality:</strong> ${settings.quality * 100}%`;
+
         uploadInfo.innerHTML = `
             <strong>File:</strong> ${selectedFile.name}<br>
-            <strong>Original Size:</strong> ${originalImageDimensions.width} x ${originalImageDimensions.height} (${formatFileSize(selectedFile.size)})<br>
+            <strong>Original Size:</strong> ${originalImageDimensions.width} x ${originalImageDimensions.height}<br>
             <strong>Upload Size:</strong> ${width} x ${height}<br>
-            <strong>Format:</strong> ${selectedFile.type} → ${formatName}<br>
-            <strong>Quality:</strong> ${settings.quality * 100}%<br>
-            <strong>Est. File Size:</strong> <em>Calculating...</em>
-        `;
-
-        // Calculate actual estimated size
-        estimatedFileSize = await calculateEstimatedSize();
-
-        uploadInfo.innerHTML = `
-            <strong>File:</strong> ${selectedFile.name}<br>
-            <strong>Original Size:</strong> ${originalImageDimensions.width} x ${originalImageDimensions.height} (${formatFileSize(selectedFile.size)})<br>
-            <strong>Upload Size:</strong> ${width} x ${height}<br>
-            <strong>Format:</strong> ${selectedFile.type} → ${formatName}<br>
-            <strong>Quality:</strong> ${settings.quality * 100}%<br>
-            <strong>Est. File Size:</strong> ${estimatedFileSize ? formatFileSize(estimatedFileSize) : 'Unknown'}
+            ${formatLine}<br>
+            ${qualityLine}
         `;
     };
 
@@ -1811,7 +1826,6 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
         // Show preview
         const reader = new FileReader();
         reader.onload = e => {
-            originalImageDataUrl = e.target.result;
             previewArea.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
 
             // Get image dimensions and update info
@@ -1831,7 +1845,7 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
 
         uploadBtn.disabled = true;
         selectFileBtn.disabled = true;
-        showUploadStatus('Uploading photo...', 'uploading');
+        showUploadStatus('Uploading photo... it may take a moment', 'uploading');
 
         try {
             const settings = getUploadSettings();
@@ -1846,7 +1860,12 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
             }, 2000);
         } catch (error) {
             console.error('[Cupid Enhanced] Upload failed:', error);
-            showUploadStatus(`Upload failed: ${error.message}`, 'error');
+            // Check for 500 error which often means the image is too large
+            let errorMsg = error.message;
+            if (error.message.includes('500')) {
+                errorMsg = 'Server error (500). Try a smaller resolution or different image.';
+            }
+            showUploadStatus(`Upload failed: ${errorMsg}`, 'error');
             uploadBtn.disabled = false;
             selectFileBtn.disabled = false;
         }
@@ -1866,8 +1885,6 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
     function resetUploadUI() {
         selectedFile = null;
         originalImageDimensions = { width: 0, height: 0 };
-        originalImageDataUrl = null;
-        estimatedFileSize = null;
         fileInput.value = '';
         previewArea.innerHTML = '<p>Select an image to preview</p>';
         uploadInfo.innerHTML = '';
@@ -1885,7 +1902,6 @@ function initPhotoUpload() {
     // Only show if setting is enabled and on OkCupid
     if (currentSettings.photoUploadButton && window.location.hostname.includes('okcupid.com')) {
         createPhotoUploadUI();
-        console.log('[Cupid Enhanced] Photo upload feature initialized');
     }
 }
 
@@ -2499,6 +2515,9 @@ async function displayPhotoDatesOnFullscreenImages() {
 // =============================================================================
 
 async function saveVisitedProfile(userId, photoUrl, name, age, location) {
+    // Silently skip if extension context is invalidated (e.g., after extension reload)
+    if (!isExtensionContextValid()) return;
+
     try {
         const result = await chrome.storage.local.get([STORAGE_KEYS.visitedProfiles]);
         let profiles = result[STORAGE_KEYS.visitedProfiles] || [];
@@ -2512,8 +2531,10 @@ async function saveVisitedProfile(userId, photoUrl, name, age, location) {
         profiles.push({ userId, photoUrl, name, age, location, timestamp: Date.now() });
         await chrome.storage.local.set({ [STORAGE_KEYS.visitedProfiles]: profiles });
     } catch (error) {
-        // Extension context may be invalidated after reload
-        console.error('[Cupid Enhanced] Could not save visited profile:', error.message);
+        // Only log if it's not a context invalidation error
+        if (!error.message?.includes('Extension context invalidated')) {
+            console.error('[Cupid Enhanced] Could not save visited profile:', error.message);
+        }
     }
 }
 
@@ -2691,9 +2712,7 @@ function injectDoubleTakeButtons() {
         e.preventDefault();
         passButton.disabled = true;
         try {
-            console.log('[Cupid Enhanced] Passing on user:', userId);
             await voteOnUser(userId, 'PASS', 'DOUBLETAKE');
-            console.log('[Cupid Enhanced] Successfully passed on user');
             // Navigate back or to next profile
             window.history.back();
         } catch (error) {
@@ -2706,14 +2725,7 @@ function injectDoubleTakeButtons() {
         e.preventDefault();
         likeButton.disabled = true;
         try {
-            console.log('[Cupid Enhanced] Liking user:', userId);
             const result = await voteOnUser(userId, 'LIKE', 'DOUBLETAKE');
-            console.log('[Cupid Enhanced] Successfully liked user:', result);
-
-            // Check if it's a mutual match
-            if (result?.data?.userVote?.voteResults?.[0]?.isMutualLike) {
-                console.log('[Cupid Enhanced] 🎉 Mutual match!');
-            }
 
             // Navigate back or to next profile
             window.history.back();

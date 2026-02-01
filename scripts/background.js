@@ -271,16 +271,20 @@ async function uploadPhoto(photoData) {
         return { success: false, error: 'No authorization token available. Please refresh the OkCupid page.' };
     }
 
+    // Use all captured headers plus required ones for upload
     const headers = {
         'accept': '*/*',
-        'authorization': authHeader,
         'content-type': `multipart/form-data; boundary=${boundary}`,
-        'x-okcupid-auth-v': '1',
-        'x-okcupid-locale': 'en',
-        'x-okcupid-platform': 'DESKTOP',
         'Origin': 'https://www.okcupid.com',
         'Referer': 'https://www.okcupid.com/'
     };
+
+    // Add all captured OkCupid headers (authorization, device-id, version, etc.)
+    for (const [key, value] of Object.entries(capturedOkCupidHeaders)) {
+        if (value) {
+            headers[key] = value;
+        }
+    }
 
     if (cookieString) {
         headers['Cookie'] = cookieString;
