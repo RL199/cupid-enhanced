@@ -188,16 +188,6 @@
         }
     }
 
-    // Listen for settings from isolated world
-    window.addEventListener('message', (event) => {
-        if (event.source === window && event.data.type === 'SETTINGS_TO_MAIN') {
-            settings = event.data.settings;
-        }
-    });
-
-    // Request settings immediately
-    window.postMessage({ type: 'REQUEST_SETTINGS' }, '*');
-
     // --- Handlers ---
 
     const handleLikes = (data) => {

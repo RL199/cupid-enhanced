@@ -182,28 +182,18 @@ function handleFullscreenPhotoScroll(event) {
 async function loadSettings() {
     const result = await chrome.storage.local.get([SETTINGS_KEY]);
     currentSettings = { ...DEFAULT_SETTINGS, ...result[SETTINGS_KEY] };
-    sendSettingsToMainWorld();
-}
-
-function sendSettingsToMainWorld() {
-    window.postMessage({ type: 'SETTINGS_TO_MAIN', settings: currentSettings }, '*');
 }
 
 function listenForSettingsUpdates() {
     chrome.runtime.onMessage.addListener(message => {
         if (message.type === 'SETTINGS_UPDATED') {
             currentSettings = message.settings;
-            sendSettingsToMainWorld();
             applySettings();
         }
     });
 
     window.addEventListener('message', async event => {
         if (event.source !== window) return;
-
-        if (event.data.type === 'REQUEST_SETTINGS') {
-            sendSettingsToMainWorld();
-        }
 
         // Forward captured headers from MAIN world to background service worker
         if (event.data.type === 'OKCUPID_HEADERS_CAPTURED') {
