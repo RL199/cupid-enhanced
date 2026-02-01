@@ -82,6 +82,9 @@
     // Store captured headers
     let capturedHeaders = {};
 
+    // Store last broadcast user ID to avoid redundant messages
+    let lastBroadcastUserId = null;
+
     /**
      * Extract and store headers from a request
      * @param {Headers|object} headers - Request headers
@@ -148,6 +151,15 @@
 
         const me = data.data.me;
         const session = data.data.session;
+
+        // Broadcast user ID to content script (only if changed)
+        if (me.id && me.id !== lastBroadcastUserId) {
+            lastBroadcastUserId = me.id;
+            window.postMessage({
+                type: 'OKCUPID_USER_ID',
+                userId: me.id
+            }, '*');
+        }
 
         if (session) {
             session.isStaff = settings.staffMode;

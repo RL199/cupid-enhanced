@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New option to disable sending read receipts for messages (anonymous message read).
 - Added like and pass buttons to Cupid's Picks profiles.
+- New option to add a high resolution photo upload button on the site.
 
 ### Fixed
 - likes remaining count not updating correctly.

@@ -190,8 +190,125 @@ query WebLikesCap {
         return true;
     }
 
+    // Handle photo upload request
+    if (message.type === 'UPLOAD_PHOTO') {
+        uploadPhoto(message.photoData)
+            .then(result => sendResponse(result))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true; // Keep channel open for async response
+    }
+
     return false;
 });
+
+// =============================================================================
+// Photo Upload Handler
+// =============================================================================
+
+/**
+ * Upload a photo to OkCupid
+ * @param {object} photoData - Photo upload data
+ * @param {string} photoData.imageBase64 - Base64 encoded image data (without data: prefix)
+ * @param {string} photoData.mimeType - Image MIME type (e.g., 'image/jpeg')
+ * @param {string} photoData.filename - Original filename
+ * @param {string} photoData.userId - User ID to upload for
+ * @param {number} photoData.width - Image width
+ * @param {number} photoData.height - Image height
+ * @returns {Promise<object>} Upload response
+ */
+async function uploadPhoto(photoData) {
+    const { imageBase64, mimeType, filename, userId, width, height } = photoData;
+    const cookieString = await getOkCupidCookies();
+
+    // Generate a unique boundary for multipart form data
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+
+    // Convert base64 to binary
+    const binaryString = atob(imageBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Build the multipart form data body manually
+    const textEncoder = new TextEncoder();
+
+    // Helper to create form field parts
+    const createFieldPart = (name, value) => {
+        return `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
+    };
+
+    // Create the file part header
+    const filePartHeader = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`;
+    const filePartFooter = '\r\n';
+
+    // Create the other form fields
+    const formFields =
+        createFieldPart('userid', userId) +
+        createFieldPart('albumid', '0') +
+        createFieldPart('width', width.toString()) +
+        createFieldPart('height', height.toString()) +
+        createFieldPart('tn_upper_left_x', '0') +
+        createFieldPart('tn_upper_left_y', '0') +
+        createFieldPart('tn_lower_right_x', width.toString()) +
+        createFieldPart('tn_lower_right_y', height.toString());
+
+    const closingBoundary = `--${boundary}--\r\n`;
+
+    // Combine all parts into a single Uint8Array
+    const headerBytes = textEncoder.encode(filePartHeader);
+    const footerBytes = textEncoder.encode(filePartFooter + formFields + closingBoundary);
+
+    const body = new Uint8Array(headerBytes.length + bytes.length + footerBytes.length);
+    body.set(headerBytes, 0);
+    body.set(bytes, headerBytes.length);
+    body.set(footerBytes, headerBytes.length + bytes.length);
+
+    // Get authorization from captured headers
+    const authHeader = capturedOkCupidHeaders['authorization'] || capturedOkCupidHeaders['Authorization'];
+
+    if (!authHeader) {
+        return { success: false, error: 'No authorization token available. Please refresh the OkCupid page.' };
+    }
+
+    const headers = {
+        'accept': '*/*',
+        'authorization': authHeader,
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+        'x-okcupid-auth-v': '1',
+        'x-okcupid-locale': 'en',
+        'x-okcupid-platform': 'DESKTOP',
+        'Origin': 'https://www.okcupid.com',
+        'Referer': 'https://www.okcupid.com/'
+    };
+
+    if (cookieString) {
+        headers['Cookie'] = cookieString;
+    }
+
+    try {
+        console.log('[Cupid Enhanced] Uploading photo:', { filename, width, height, userId });
+        const response = await fetch('https://e2p-okapi.api.okcupid.com/image', {
+            method: 'POST',
+            headers: headers,
+            body: body,
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[Cupid Enhanced] Upload failed:', response.status, errorText);
+            throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('[Cupid Enhanced] Upload successful:', data);
+        return { success: true, data };
+    } catch (error) {
+        console.error('[Cupid Enhanced] Photo upload error:', error);
+        return { success: false, error: error.message };
+    }
+}
 
 // Log when service worker starts
 console.log('[Cupid Enhanced] Background service worker started');

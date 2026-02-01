@@ -17,7 +17,8 @@ var DEFAULT_SETTINGS = {
     enhanceLikesYouPage: false,
     horizontalScroll: true,
     darkMode: false,
-    anonymousMessageRead: false
+    anonymousMessageRead: false,
+    photoUploadButton: false
 };
 
 // =============================================================================

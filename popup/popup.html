@@ -1,120 +1,139 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Cupid Enhanced Settings</title>
+        <link rel="stylesheet" href="popup.css" />
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cupid Enhanced Settings</title>
-    <link rel="stylesheet" href="popup.css">
-</head>
+    <body>
+        <div class="popup-container">
+            <div class="header">
+                <img src="../assets/branding/cupid-enhanced.svg" alt="Cupid Enhanced" class="header-logo" />
+            </div>
 
-<body>
-    <div class="popup-container">
-        <div class="header">
-            <img src="../assets/branding/cupid-enhanced.svg" alt="Cupid Enhanced" class="header-logo">
-        </div>
-
-        <div class="settings-container">
-            <div id="settings-list">
-                <div class="setting-item" data-setting="staffMode">
-                    <div class="setting-info">
-                        <div class="setting-text">
-                            <h3 class="setting-title">Staff Mode</h3>
-                            <span class="setting-description">Shows staff panel on the left sidebar</span>
+            <div class="settings-container">
+                <div id="settings-list">
+                    <div class="setting-item" data-setting="staffMode">
+                        <div class="setting-info">
+                            <div class="setting-text">
+                                <h3 class="setting-title">Staff Mode</h3>
+                                <span class="setting-description">Shows staff panel on the left sidebar</span>
+                            </div>
                         </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="staffMode" />
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" data-key="staffMode">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
 
-                <div class="setting-item" data-setting="enhanceDiscoverPage">
-                    <div class="setting-info">
-                        <div class="setting-text">
-                            <h3 class="setting-title">Better Discover Layout</h3>
-                            <span class="setting-description">Expands page width and adds additional profile information</span>
+                    <div class="setting-item" data-setting="enhanceDiscoverPage">
+                        <div class="setting-info">
+                            <div class="setting-text">
+                                <h3 class="setting-title">Better Discover Layout</h3>
+                                <span class="setting-description"
+                                    >Expands page width and adds additional profile information</span
+                                >
+                            </div>
                         </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="enhanceDiscoverPage" />
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" data-key="enhanceDiscoverPage">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
 
-                <div class="setting-item" data-setting="enhanceLikesYouPage">
-                    <div class="setting-info">
-                        <div class="setting-text">
-                            <h3 class="setting-title">Better Likes You Layout</h3>
-                            <span class="setting-description">Displays likes you layout in a grid layout with more profiles</span>
+                    <div class="setting-item" data-setting="enhanceLikesYouPage">
+                        <div class="setting-info">
+                            <div class="setting-text">
+                                <h3 class="setting-title">Better Likes You Layout</h3>
+                                <span class="setting-description"
+                                    >Displays likes you layout in a grid layout with more profiles</span
+                                >
+                            </div>
                         </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="enhanceLikesYouPage" />
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" data-key="enhanceLikesYouPage">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
 
-                <div class="setting-item" data-setting="horizontalScroll">
-                    <div class="setting-info">
-                        <div class="setting-text">
-                            <h3 class="setting-title">Horizontal Mouse Scroll to Browse</h3>
-                            <span class="setting-description">Navigate profile photos using horizontal mouse scroll</span>
+                    <div class="setting-item" data-setting="horizontalScroll">
+                        <div class="setting-info">
+                            <div class="setting-text">
+                                <h3 class="setting-title">Horizontal Mouse Scroll to Browse</h3>
+                                <span class="setting-description"
+                                    >Navigate profile photos using horizontal mouse scroll</span
+                                >
+                            </div>
                         </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="horizontalScroll" />
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" data-key="horizontalScroll">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
 
-                <div class="setting-item" data-setting="anonymousMessageRead">
-                    <div class="setting-info">
-                        <div class="setting-text">
-                            <h3 class="setting-title">Anonymous Message Read</h3>
-                            <span class="setting-description">Blocks read receipts so messages stay unseen</span>
+                    <div class="setting-item" data-setting="anonymousMessageRead">
+                        <div class="setting-info">
+                            <div class="setting-text">
+                                <h3 class="setting-title">Anonymous Message Read</h3>
+                                <span class="setting-description">Blocks read receipts so messages stay unseen</span>
+                            </div>
                         </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="anonymousMessageRead" />
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" data-key="anonymousMessageRead">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
 
-                <div class="setting-item" data-setting="darkMode">
-                    <div class="setting-info">
-                        <div class="setting-text">
-                            <h3 class="setting-title">Dark Mode (Experimental)</h3>
-                            <span class="setting-description">Applies dark theme styling across all pages</span>
+                    <div class="setting-item" data-setting="photoUploadButton">
+                        <div class="setting-info">
+                            <div class="setting-text">
+                                <h3 class="setting-title">Photo Upload Button</h3>
+                                <span class="setting-description">Shows a button to upload high resolution photos</span>
+                            </div>
                         </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="photoUploadButton" />
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" data-key="darkMode">
-                        <span class="toggle-slider"></span>
-                    </label>
+
+                    <div class="setting-item" data-setting="darkMode">
+                        <div class="setting-info">
+                            <div class="setting-text">
+                                <h3 class="setting-title">Dark Mode (Experimental)</h3>
+                                <span class="setting-description">Applies dark theme styling across all pages</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-key="darkMode" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
-
-        </div>
-
-        <div class="footer">
-            <span class="instructions">Refresh the site to apply changes</span>
-            <div class="footer-actions">
-                <button id="open-site-btn" class="open-site-btn">
-                    <span>Open OkCupid</span>
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M10 6H6C4.89543 6 4 6.89543 4 8V18C4 19.1046 4.89543 20 6 20H16C17.1046 20 18 19.1046 18 18V14M14 4H20M20 4V10M20 4L10 14"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                </button>
-                <span class="version" id="version"></span>
+            <div class="footer">
+                <span class="instructions">Refresh the site to apply changes</span>
+                <div class="footer-actions">
+                    <button id="open-site-btn" class="open-site-btn">
+                        <span>Open OkCupid</span>
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M10 6H6C4.89543 6 4 6.89543 4 8V18C4 19.1046 4.89543 20 6 20H16C17.1046 20 18 19.1046 18 18V14M14 4H20M20 4V10M20 4L10 14"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </button>
+                    <span class="version" id="version"></span>
+                </div>
             </div>
         </div>
-    </div>
-    <script src="../scripts/shared-constants.js"></script>
-    <script src="popup.js"></script>
-</body>
-
+        <script src="../scripts/shared-constants.js"></script>
+        <script src="popup.js"></script>
+    </body>
 </html>

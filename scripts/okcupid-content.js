@@ -215,6 +215,9 @@ async function init() {
         enableDarkMode();
     }
 
+    // Initialize photo upload feature
+    initPhotoUpload();
+
     // Fetch and display likes cap data after a short delay to allow headers to be captured
     setTimeout(fetchAndDisplayLikesCap, 100);
 }
@@ -1123,15 +1126,23 @@ query WebGetMessagesMain($userid: String!, $filter: ConversationsAndMatchesFilte
                         const correspondent = item.correspondent;
                         const user = correspondent?.user;
                         const unread = item.isUnread ? ' [UNREAD]' : '';
-                        console.log(`[Cupid Enhanced] ${index + 1}. ${user?.displayname || 'Unknown'} (${user?.age || '?'})${unread}`);
-                        console.log(`[Cupid Enhanced]    ID: ${user?.id || 'N/A'}, Match: ${correspondent?.matchPercent || 0}%`);
+                        console.log(
+                            `[Cupid Enhanced] ${index + 1}. ${user?.displayname || 'Unknown'} (${user?.age || '?'})${unread}`
+                        );
+                        console.log(
+                            `[Cupid Enhanced]    ID: ${user?.id || 'N/A'}, Match: ${correspondent?.matchPercent || 0}%`
+                        );
                         console.log(`[Cupid Enhanced]    Last: "${item.snippet?.text?.substring(0, 50) || ''}..."`);
                     } else if (item.__typename === 'MutualMatch') {
                         const match = item.match;
                         const user = match?.user;
                         const unread = item.isUnread ? ' [UNREAD]' : '';
-                        console.log(`[Cupid Enhanced] ${index + 1}. [MATCH] ${user?.displayname || 'Unknown'} (${user?.age || '?'})${unread}`);
-                        console.log(`[Cupid Enhanced]    ID: ${user?.id || 'N/A'}, Match: ${match?.matchPercent || 0}%`);
+                        console.log(
+                            `[Cupid Enhanced] ${index + 1}. [MATCH] ${user?.displayname || 'Unknown'} (${user?.age || '?'})${unread}`
+                        );
+                        console.log(
+                            `[Cupid Enhanced]    ID: ${user?.id || 'N/A'}, Match: ${match?.matchPercent || 0}%`
+                        );
                     }
                 });
             }
@@ -1147,6 +1158,734 @@ query WebGetMessagesMain($userid: String!, $filter: ConversationsAndMatchesFilte
     } catch (error) {
         console.error('[Cupid Enhanced] Failed to get messages main:', error.message);
         throw error;
+    }
+}
+
+// =============================================================================
+// Photo Upload Feature
+// =============================================================================
+
+// Current user ID (will be populated from API responses)
+let currentUserId = null;
+
+/**
+ * Upload a photo to OkCupid via background script
+ * @param {File} file - The image file to upload
+ * @param {object} settings - Upload settings
+ * @param {number} settings.maxDimension - Max dimension in pixels
+ * @param {number} settings.quality - Quality 0-1
+ * @param {string} settings.outputFormat - Output MIME type
+ * @returns {Promise<object>} Upload result
+ */
+async function uploadPhotoToOkCupid(file, settings) {
+    const { maxDimension, quality, outputFormat } = settings;
+
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async e => {
+            try {
+                // Load the image to get dimensions and resize if needed
+                const img = new Image();
+                img.onload = async () => {
+                    // Create canvas for resizing
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Calculate new dimensions (maintain aspect ratio)
+                    let { width, height } = img;
+
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height / width) * maxDimension);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width / height) * maxDimension);
+                            height = maxDimension;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Draw image with high quality
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Determine file extension based on format
+                    const extMap = {
+                        'image/jpeg': '.jpg',
+                        'image/png': '.png',
+                        'image/webp': '.webp'
+                    };
+                    const ext = extMap[outputFormat] || '.jpg';
+
+                    // Convert to blob
+                    canvas.toBlob(
+                        async blob => {
+                            try {
+                                // Convert blob to base64
+                                const base64Reader = new FileReader();
+                                base64Reader.onload = async () => {
+                                    const base64Data = base64Reader.result.split(',')[1];
+
+                                    // Get user ID
+                                    const userId = await getCurrentUserId();
+                                    if (!userId) {
+                                        reject(new Error('Could not determine user ID. Please refresh the page.'));
+                                        return;
+                                    }
+
+                                    // Send to background script for upload
+                                    chrome.runtime.sendMessage(
+                                        {
+                                            type: 'UPLOAD_PHOTO',
+                                            photoData: {
+                                                imageBase64: base64Data,
+                                                mimeType: outputFormat,
+                                                filename: file.name.replace(/\.[^.]+$/, ext),
+                                                userId: userId,
+                                                width: width,
+                                                height: height
+                                            }
+                                        },
+                                        response => {
+                                            if (chrome.runtime.lastError) {
+                                                reject(new Error(chrome.runtime.lastError.message));
+                                            } else if (response?.success) {
+                                                resolve(response);
+                                            } else {
+                                                reject(new Error(response?.error || 'Upload failed'));
+                                            }
+                                        }
+                                    );
+                                };
+                                base64Reader.onerror = () => reject(new Error('Failed to encode image'));
+                                base64Reader.readAsDataURL(blob);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        },
+                        outputFormat,
+                        quality
+                    );
+                };
+
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target.result;
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+    });
+}
+
+/**
+ * Get the current user's ID
+ * @returns {Promise<string|null>} User ID or null
+ */
+async function getCurrentUserId() {
+    if (currentUserId) return currentUserId;
+    return null;
+}
+
+/**
+ * Create and inject the photo upload UI
+ */
+function createPhotoUploadUI() {
+    // Don't create if already exists
+    if (document.getElementById('cupid-photo-upload-container')) return;
+
+    // Create floating upload button
+    const uploadButton = document.createElement('button');
+    uploadButton.id = 'cupid-photo-upload-btn';
+    uploadButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>Upload Photo</span>
+    `;
+    uploadButton.title = 'Upload High Resolution Photo (Cupid Enhanced)';
+
+    // Create hidden file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'cupid-photo-input';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+
+    // Create modal for preview/upload
+    const modal = document.createElement('div');
+    modal.id = 'cupid-photo-upload-modal';
+    modal.innerHTML = `
+        <div class="cupid-modal-content">
+            <div class="cupid-modal-header">
+                <h3>Upload High Resolution Photo</h3>
+                <button class="cupid-modal-close">&times;</button>
+            </div>
+            <div class="cupid-modal-body">
+                <div class="cupid-preview-area" id="cupid-preview-area">
+                    <p>Select an image to preview</p>
+                </div>
+                <div class="cupid-upload-info" id="cupid-upload-info"></div>
+                <div class="cupid-upload-settings">
+                    <div class="cupid-setting-row">
+                        <label for="cupid-max-dimension">Max Dimension (px):</label>
+                        <input type="number" id="cupid-max-dimension" value="10000" min="100" max="20000" step="100">
+                    </div>
+                    <div class="cupid-setting-row">
+                        <label for="cupid-quality">Quality (%):</label>
+                        <input type="number" id="cupid-quality" value="100" min="10" max="100" step="5">
+                    </div>
+                    <div class="cupid-setting-row">
+                        <label for="cupid-format">Output Format:</label>
+                        <select id="cupid-format">
+                            <option value="image/jpeg">JPEG</option>
+                            <option value="image/png">PNG</option>
+                            <option value="image/webp">WebP</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="cupid-modal-footer">
+                <button class="cupid-btn cupid-btn-secondary" id="cupid-select-file-btn">Select Image</button>
+                <button class="cupid-btn cupid-btn-primary" id="cupid-upload-btn" disabled>Upload</button>
+            </div>
+        </div>
+    `;
+
+    // Create container
+    const container = document.createElement('div');
+    container.id = 'cupid-photo-upload-container';
+    container.appendChild(uploadButton);
+    container.appendChild(fileInput);
+    container.appendChild(modal);
+
+    document.body.appendChild(container);
+
+    // Inject styles
+    injectPhotoUploadStyles();
+
+    // Setup event handlers
+    setupPhotoUploadEvents(uploadButton, fileInput, modal);
+}
+
+/**
+ * Inject CSS styles for the photo upload UI
+ */
+function injectPhotoUploadStyles() {
+    if (document.getElementById('cupid-photo-upload-styles')) return;
+
+    const styles = `
+        #cupid-photo-upload-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #ff1493, #ff69b4);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        #cupid-photo-upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 20, 147, 0.5);
+        }
+
+        #cupid-photo-upload-btn:active {
+            transform: translateY(0);
+        }
+
+        #cupid-photo-upload-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        #cupid-photo-upload-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10001;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #cupid-photo-upload-modal.active {
+            display: flex;
+        }
+
+        .cupid-modal-content {
+            background: #1a1a1a;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cupid-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .cupid-modal-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .cupid-modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .cupid-modal-close:hover {
+            color: #fff;
+        }
+
+        .cupid-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .cupid-preview-area {
+            width: 100%;
+            min-height: 150px;
+            max-height: 300px;
+            border: 2px dashed #444;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background: #0d0d0d;
+        }
+
+        .cupid-preview-area p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .cupid-preview-area img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .cupid-upload-info {
+            margin-top: 15px;
+            padding: 12px;
+            background: #252525;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .cupid-upload-info:empty {
+            display: none;
+        }
+
+        .cupid-upload-settings {
+            margin-top: 15px;
+            padding: 15px;
+            background: #252525;
+            border-radius: 8px;
+        }
+
+        .cupid-setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .cupid-setting-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .cupid-setting-row label {
+            color: #ccc;
+            font-size: 13px;
+        }
+
+        .cupid-setting-row input,
+        .cupid-setting-row select {
+            width: 120px;
+            padding: 8px 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .cupid-setting-row input:focus,
+        .cupid-setting-row select:focus {
+            outline: none;
+            border-color: #ff1493;
+        }
+
+        .cupid-modal-footer {
+            display: flex;
+            gap: 12px;
+            padding: 20px;
+            border-top: 1px solid #333;
+            flex-shrink: 0;
+            background: #1a1a1a;
+        }
+
+        .cupid-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cupid-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .cupid-btn-secondary {
+            background: #333;
+            color: #fff;
+        }
+
+        .cupid-btn-secondary:hover:not(:disabled) {
+            background: #444;
+        }
+
+        .cupid-btn-primary {
+            background: linear-gradient(135deg, #ff1493, #ff69b4);
+            color: #fff;
+        }
+
+        .cupid-btn-primary:hover:not(:disabled) {
+            box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
+        }
+
+        .cupid-upload-progress {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .cupid-upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff1493, #ff69b4);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .cupid-upload-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .cupid-upload-status.success {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+
+        .cupid-upload-status.error {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
+        .cupid-upload-status.uploading {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+    `;
+
+    const styleEl = document.createElement('style');
+    styleEl.id = 'cupid-photo-upload-styles';
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
+}
+
+/**
+ * Setup event handlers for photo upload UI
+ */
+function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
+    const previewArea = document.getElementById('cupid-preview-area');
+    const uploadInfo = document.getElementById('cupid-upload-info');
+    const selectFileBtn = document.getElementById('cupid-select-file-btn');
+    const uploadBtn = document.getElementById('cupid-upload-btn');
+    const closeBtn = modal.querySelector('.cupid-modal-close');
+    const maxDimensionInput = document.getElementById('cupid-max-dimension');
+    const qualityInput = document.getElementById('cupid-quality');
+    const formatSelect = document.getElementById('cupid-format');
+
+    let selectedFile = null;
+    let originalImageDimensions = { width: 0, height: 0 };
+    let originalImageDataUrl = null;
+    let estimatedFileSize = null;
+
+    // Helper to format file size
+    const formatFileSize = bytes => {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    };
+
+    // Helper to get current settings from inputs
+    const getUploadSettings = () => ({
+        maxDimension: parseInt(maxDimensionInput.value, 10) || 3000,
+        quality: (parseInt(qualityInput.value, 10) || 95) / 100,
+        outputFormat: formatSelect.value || 'image/jpeg'
+    });
+
+    // Helper to calculate final dimensions
+    const calculateFinalDimensions = (origWidth, origHeight, maxDim) => {
+        let width = origWidth;
+        let height = origHeight;
+        if (width > maxDim || height > maxDim) {
+            if (width > height) {
+                height = Math.round((height / width) * maxDim);
+                width = maxDim;
+            } else {
+                width = Math.round((width / height) * maxDim);
+                height = maxDim;
+            }
+        }
+        return { width, height };
+    };
+
+    // Calculate estimated file size by rendering to canvas
+    const calculateEstimatedSize = async () => {
+        if (!originalImageDataUrl || !originalImageDimensions.width) return null;
+
+        const settings = getUploadSettings();
+        const { width, height } = calculateFinalDimensions(
+            originalImageDimensions.width,
+            originalImageDimensions.height,
+            settings.maxDimension
+        );
+
+        return new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    blob => {
+                        resolve(blob ? blob.size : null);
+                    },
+                    settings.outputFormat,
+                    settings.quality
+                );
+            };
+            img.onerror = () => resolve(null);
+            img.src = originalImageDataUrl;
+        });
+    };
+
+    // Helper to update the info display
+    const updateInfoDisplay = async () => {
+        if (!selectedFile || !originalImageDimensions.width) return;
+        const settings = getUploadSettings();
+        const { width, height } = calculateFinalDimensions(
+            originalImageDimensions.width,
+            originalImageDimensions.height,
+            settings.maxDimension
+        );
+        const formatName =
+            {
+                'image/jpeg': 'JPEG',
+                'image/png': 'PNG',
+                'image/webp': 'WebP'
+            }[settings.outputFormat] || 'JPEG';
+
+        // Show loading state for file size
+        uploadInfo.innerHTML = `
+            <strong>File:</strong> ${selectedFile.name}<br>
+            <strong>Original Size:</strong> ${originalImageDimensions.width} x ${originalImageDimensions.height} (${formatFileSize(selectedFile.size)})<br>
+            <strong>Upload Size:</strong> ${width} x ${height}<br>
+            <strong>Format:</strong> ${selectedFile.type} → ${formatName}<br>
+            <strong>Quality:</strong> ${settings.quality * 100}%<br>
+            <strong>Est. File Size:</strong> <em>Calculating...</em>
+        `;
+
+        // Calculate actual estimated size
+        estimatedFileSize = await calculateEstimatedSize();
+
+        uploadInfo.innerHTML = `
+            <strong>File:</strong> ${selectedFile.name}<br>
+            <strong>Original Size:</strong> ${originalImageDimensions.width} x ${originalImageDimensions.height} (${formatFileSize(selectedFile.size)})<br>
+            <strong>Upload Size:</strong> ${width} x ${height}<br>
+            <strong>Format:</strong> ${selectedFile.type} → ${formatName}<br>
+            <strong>Quality:</strong> ${settings.quality * 100}%<br>
+            <strong>Est. File Size:</strong> ${estimatedFileSize ? formatFileSize(estimatedFileSize) : 'Unknown'}
+        `;
+    };
+
+    // Update info when settings change
+    maxDimensionInput.addEventListener('change', updateInfoDisplay);
+    qualityInput.addEventListener('change', updateInfoDisplay);
+    formatSelect.addEventListener('change', updateInfoDisplay);
+
+    // Open modal
+    uploadButton.addEventListener('click', () => {
+        modal.classList.add('active');
+    });
+
+    // Close modal
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('active');
+        resetUploadUI();
+    });
+
+    // Close on backdrop click
+    modal.addEventListener('click', e => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+            resetUploadUI();
+        }
+    });
+
+    // Select file button
+    selectFileBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // File selected
+    fileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            showUploadStatus('Please select an image file', 'error');
+            return;
+        }
+
+        selectedFile = file;
+        uploadBtn.disabled = false;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = e => {
+            originalImageDataUrl = e.target.result;
+            previewArea.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+
+            // Get image dimensions and update info
+            const img = new Image();
+            img.onload = () => {
+                originalImageDimensions = { width: img.width, height: img.height };
+                updateInfoDisplay();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Upload button
+    uploadBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        uploadBtn.disabled = true;
+        selectFileBtn.disabled = true;
+        showUploadStatus('Uploading photo...', 'uploading');
+
+        try {
+            const settings = getUploadSettings();
+            const result = await uploadPhotoToOkCupid(selectedFile, settings);
+            console.log('[Cupid Enhanced] Photo uploaded successfully:', result);
+            showUploadStatus('Photo uploaded successfully! Refresh your profile to see it.', 'success');
+
+            // Reset after success
+            setTimeout(() => {
+                modal.classList.remove('active');
+                resetUploadUI();
+            }, 2000);
+        } catch (error) {
+            console.error('[Cupid Enhanced] Upload failed:', error);
+            showUploadStatus(`Upload failed: ${error.message}`, 'error');
+            uploadBtn.disabled = false;
+            selectFileBtn.disabled = false;
+        }
+    });
+
+    function showUploadStatus(message, type) {
+        let statusEl = modal.querySelector('.cupid-upload-status');
+        if (!statusEl) {
+            statusEl = document.createElement('div');
+            statusEl.className = 'cupid-upload-status';
+            modal.querySelector('.cupid-modal-body').appendChild(statusEl);
+        }
+        statusEl.className = `cupid-upload-status ${type}`;
+        statusEl.textContent = message;
+    }
+
+    function resetUploadUI() {
+        selectedFile = null;
+        originalImageDimensions = { width: 0, height: 0 };
+        originalImageDataUrl = null;
+        estimatedFileSize = null;
+        fileInput.value = '';
+        previewArea.innerHTML = '<p>Select an image to preview</p>';
+        uploadInfo.innerHTML = '';
+        uploadBtn.disabled = true;
+        selectFileBtn.disabled = false;
+        const statusEl = modal.querySelector('.cupid-upload-status');
+        if (statusEl) statusEl.remove();
+    }
+}
+
+/**
+ * Initialize photo upload feature
+ */
+function initPhotoUpload() {
+    // Only show if setting is enabled and on OkCupid
+    if (currentSettings.photoUploadButton && window.location.hostname.includes('okcupid.com')) {
+        createPhotoUploadUI();
+        console.log('[Cupid Enhanced] Photo upload feature initialized');
     }
 }
 
@@ -1231,7 +1970,7 @@ function listenForLikesData() {
     window.addEventListener('message', event => {
         if (event.source !== window) return;
 
-        const { type, count, time } = event.data;
+        const { type, count, time, userId } = event.data;
 
         if (type === 'LIKES_REMAINING_COUNT') {
             localStorage.setItem(STORAGE_KEYS.likesRemaining, count);
@@ -1242,6 +1981,11 @@ function listenForLikesData() {
             const readableTime = new Date(time).toLocaleString();
             localStorage.setItem(STORAGE_KEYS.likesResetTime, readableTime);
             updateElementText('likes-reset-time', `Next Likes Reset: ${readableTime}`);
+        }
+
+        // Capture user ID from API interceptor
+        if (type === 'OKCUPID_USER_ID' && userId) {
+            currentUserId = userId;
         }
     });
 }
@@ -1538,7 +2282,7 @@ function getBaseImageUrl(url) {
     return url.split('?')[0];
 }
 
-function getCurrentUserId() {
+function getCurrentUserIdFromDOM() {
     return document.querySelector(SELECTORS.discoverWrapper)?.getAttribute('data-user-id') || null;
 }
 
@@ -1569,9 +2313,9 @@ async function fetchImageLastModified(imageUrl) {
 async function fetchAllImageMetadata() {
     if (isFetchingMetadata) return;
 
-    const currentUserId = getCurrentUserId();
+    const userId = getCurrentUserIdFromDOM();
 
-    if (currentUserId && currentUserId === lastFetchedUserId) {
+    if (userId && userId === lastFetchedUserId) {
         updatePhotoDateDisplay();
         return;
     }
@@ -1581,9 +2325,9 @@ async function fetchAllImageMetadata() {
 
     isFetchingMetadata = true;
 
-    if (currentUserId !== lastFetchedUserId) {
+    if (userId !== lastFetchedUserId) {
         imageMetadataCache = {};
-        lastFetchedUserId = currentUserId;
+        lastFetchedUserId = userId;
     }
 
     try {
@@ -1777,8 +2521,8 @@ function addCupidEnhancedSection() {
     const rightPanel = document.querySelector(SELECTORS.rightPanel);
     if (!rightPanel) return;
 
-    const currentUserId = getCurrentUserId();
-    if (currentUserId) {
+    const userId = getCurrentUserIdFromDOM();
+    if (userId) {
         const photoUrls = getDiscoverPagePhotoUrls();
         const firstPhotoUrl = photoUrls.length > 0 ? getBaseImageUrl(photoUrls[0]) : null;
 
