@@ -291,6 +291,11 @@
     window.fetch = async function (input, init) {
         const url = typeof input === 'string' ? input : input.url;
 
+        // Block tracking/analytics URLs FIRST (before any other processing)
+        if (BLOCKED_URLS.some(blocked => url.includes(blocked))) {
+            return new Response('', { status: 200 });
+        }
+
         // Capture headers from OkCupid API requests
         if (url.includes('okcupid.com') && init?.headers) {
             captureHeaders(init.headers);
@@ -298,11 +303,6 @@
 
         // Block QA/test server requests that cause DNS errors
         if (url.includes('qa1.match.com') || url.includes('qa2.match.com')) {
-            return new Response('', { status: 200 });
-        }
-
-        // Block tracking/analytics URLs entirely
-        if (BLOCKED_URLS.some(blocked => url.includes(blocked))) {
             return new Response('', { status: 200 });
         }
 
