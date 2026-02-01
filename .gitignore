@@ -4,6 +4,7 @@
 svg-assets/
 .github/copilot-instructions.md
 .github/agents/
+.github/instructions/
 source files/
 python-scripts/
 notes/
