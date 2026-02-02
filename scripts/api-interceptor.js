@@ -4,20 +4,189 @@
 
     console.log('###Cupid Enhanced: API Interceptor Loaded###');
 
-    const SETTINGS_KEY = 'cupidEnhancedSettings';
     let settings = {
-        staffMode: false
+        staffMode: true,
+        anonymousMessageRead: true
     };
 
-    // Listen for settings from isolated world
-    window.addEventListener('message', (event) => {
-        if (event.source === window && event.data.type === 'SETTINGS_TO_MAIN') {
-            settings = event.data.settings;
-        }
-    });
+    // =============================================================================
+    // API Interceptor Constants
+    // =============================================================================
 
-    // Request settings immediately
-    window.postMessage({ type: 'REQUEST_SETTINGS' }, '*');
+    // Headers we want to capture from OkCupid requests
+    const HEADERS_TO_CAPTURE = [
+        'authorization',
+        'x-okcupid-auth-v',
+        'x-okcupid-device-id',
+        'x-okcupid-locale',
+        'x-okcupid-platform',
+        'x-okcupid-version'
+    ];
+
+    // Analytics operations to block (GraphQL)
+    const BLOCKED_OPERATIONS = [
+        'WebLogAnalyticsEvents',
+        'webLogAnalyticsEvents'
+        // 'WebE2PStaffbar', // Staff tracking
+        // 'WebUpdateStats', // Stats tracking
+        // 'webUpdateStats'
+    ];
+
+    // URLs to block entirely (Cloudflare, analytics, etc.)
+    const BLOCKED_URLS = [
+        '/cdn-cgi/rum', // Cloudflare Real User Monitoring
+        'cloudflareinsights.com', // Cloudflare analytics beacon
+        '/beacon.min.js', // Cloudflare beacon script
+        'google-analytics.com',
+        'googletagmanager.com',
+        'facebook.com/tr', // Facebook pixel
+        'doubleclick.net',
+        'hotjar.com',
+        'amplitude.com',
+        'mixpanel.com',
+        'segment.io',
+        'sentry.io'
+    ];
+
+    // Premium features found in module 88074 (lowercase and uppercase variants)
+    const PREMIUM_FEATURES = [
+        'intoyou', 'INTO_YOU',
+        'comfree', 'ad_free', 'AD_FREE', 'ADFREE',
+        'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
+        'intros', 'INTROS',
+        'dealbreakers', 'DEALBREAKERS',
+        'see_more_people', 'SEE_MORE_PEOPLE',
+        'questions', 'QUESTIONS',
+        'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
+        'rewind', 'REWIND',
+        'question_search', 'QUESTION_SEARCH',
+        'who_likes_you', 'see_who_likes_you', 'SEE_WHO_LIKES_YOU',
+        'question_answers', 'QUESTION_ANSWERS',
+        'likes_list_sort', 'LIKES_LIST_SORT',
+        'priority_likes', 'PRIORITY_LIKES',
+        'read_receipts', 'READ_RECEIPTS',
+        'passport', 'PASSPORT',
+        'boost', 'BOOST',
+        'super_boost', 'SUPER_BOOST',
+        'views', 'VIEWS',
+        'profile_visitors', 'PROFILE_VISITORS',
+        'match_search', 'MATCH_SEARCH',
+        'advanced_filters', 'ADVANCED_FILTERS',
+        'message_filters', 'MESSAGE_FILTERS'
+    ];
+
+    // =============================================================================
+    // Header Capture for Background Script API Requests
+    // =============================================================================
+
+    // Store captured headers
+    let capturedHeaders = {};
+
+    // Store last broadcast user ID to avoid redundant messages
+    let lastBroadcastUserId = null;
+
+    // Track latest likes pagination cursor from requests
+    let lastLikesRequestCursor = null;
+    let lastLikesRequestOperation = null;
+
+    /**
+     * Extract and store headers from a request
+     * @param {Headers|object} headers - Request headers
+     */
+    function captureHeaders(headers) {
+        if (!headers) return;
+
+        const headersObj = headers instanceof Headers
+            ? Object.fromEntries(headers.entries())
+            : headers;
+
+        let updated = false;
+        for (const [key, value] of Object.entries(headersObj)) {
+            const lowerKey = key.toLowerCase();
+            if (HEADERS_TO_CAPTURE.includes(lowerKey) && value) {
+                capturedHeaders[key] = value;
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            // Send captured headers to isolated world (which forwards to background)
+            window.postMessage({
+                type: 'OKCUPID_HEADERS_CAPTURED',
+                headers: capturedHeaders
+            }, '*');
+        }
+    }
+
+    function normalizeImageUrl(url) {
+        if (!url || typeof url !== 'string') return null;
+        return url.split('?')[0];
+    }
+
+    function safeBase64Decode(value) {
+        if (!value || typeof value !== 'string') return null;
+        try {
+            return atob(value);
+        } catch {
+            return null;
+        }
+    }
+
+    function extractLikesImageUrl(item) {
+        if (!item || typeof item !== 'object') return null;
+
+        if (item.user?.primaryImage?.square225) return item.user.primaryImage.square225;
+        if (item.user?.primaryImage?.original) return item.user.primaryImage.original;
+
+        if (item.primaryImage?.square225) return item.primaryImage.square225;
+        if (item.primaryImage?.original) return item.primaryImage.original;
+
+        if (item.primaryImageBlurred?.square225) return item.primaryImageBlurred.square225;
+
+        return null;
+    }
+
+    function collectLikesProfileMappings(data) {
+        const likes = data?.data?.me?.likes;
+        if (!likes?.data || !Array.isArray(likes.data) || likes.data.length === 0) return;
+
+        const entries = [];
+        const afterCursor = likes.pageInfo?.after;
+        const decodedAfter = safeBase64Decode(afterCursor);
+
+        if (decodedAfter) {
+            const lastItem = likes.data[likes.data.length - 1];
+            const lastImage = normalizeImageUrl(extractLikesImageUrl(lastItem));
+            if (lastImage) {
+                entries.push({ profileId: decodedAfter, imageUrl: lastImage, cursor: afterCursor });
+            }
+        }
+
+        if (lastLikesRequestCursor) {
+            const decodedRequest = safeBase64Decode(lastLikesRequestCursor);
+            const firstItem = likes.data[0];
+            const firstImage = normalizeImageUrl(extractLikesImageUrl(firstItem));
+            if (decodedRequest && firstImage) {
+                entries.push({ profileId: decodedRequest, imageUrl: firstImage, cursor: lastLikesRequestCursor });
+            }
+        }
+
+        likes.data.forEach(item => {
+            const userId = item?.user?.id;
+            const imageUrl = normalizeImageUrl(extractLikesImageUrl(item));
+            if (userId && imageUrl) {
+                entries.push({ profileId: userId, imageUrl });
+            }
+        });
+
+        if (entries.length > 0) {
+            window.postMessage({
+                type: 'LIKES_PROFILE_CURSOR_MAP',
+                operation: lastLikesRequestOperation,
+                entries
+            }, '*');
+        }
+    }
 
     // --- Handlers ---
 
@@ -46,6 +215,15 @@
 
         const me = data.data.me;
         const session = data.data.session;
+
+        // Broadcast user ID to content script (only if changed)
+        if (me.id && me.id !== lastBroadcastUserId) {
+            lastBroadcastUserId = me.id;
+            window.postMessage({
+                type: 'OKCUPID_USER_ID',
+                userId: me.id
+            }, '*');
+        }
 
         if (session) {
             session.isStaff = settings.staffMode;
@@ -158,33 +336,7 @@
 
 
         // Premium features found in module 88074 (lowercase and uppercase variants)
-        const features = [
-            'intoyou', 'INTO_YOU',
-            'comfree', 'ad_free', 'AD_FREE', 'ADFREE',
-            'unlimited_likes', 'UNLIMITED_LIKES', 'UNLIMTED_LIKES',
-            'intros', 'INTROS',
-            'dealbreakers', 'DEALBREAKERS',
-            'see_more_people', 'SEE_MORE_PEOPLE',
-            'questions', 'QUESTIONS',
-            'superlikes', 'superlikes_3', 'SUPERLIKES_3', 'superlikes_15', 'SUPERLIKES_15',
-            'rewind', 'REWIND',
-            'question_search', 'QUESTION_SEARCH',
-            'who_likes_you', 'see_who_likes_you', 'SEE_WHO_LIKES_YOU',
-            'question_answers', 'QUESTION_ANSWERS',
-            'likes_list_sort', 'LIKES_LIST_SORT',
-            'priority_likes', 'PRIORITY_LIKES',
-            'read_receipts', 'READ_RECEIPTS',
-            'passport', 'PASSPORT',
-            'boost', 'BOOST',
-            'super_boost', 'SUPER_BOOST',
-            'views', 'VIEWS',
-            'profile_visitors', 'PROFILE_VISITORS',
-            'match_search', 'MATCH_SEARCH',
-            'advanced_filters', 'ADVANCED_FILTERS',
-            'message_filters', 'MESSAGE_FILTERS'
-        ];
-
-        features.forEach(feature => {
+        PREMIUM_FEATURES.forEach(feature => {
             me.premiums[feature] = true;
         });
 
@@ -211,42 +363,22 @@
 
     const originalFetch = window.fetch;
 
-    // Analytics operations to block (GraphQL)
-    const blockedOperations = [
-        'WebLogAnalyticsEvents',
-        'webLogAnalyticsEvents',
-        // 'WebE2PStaffbar', // Staff tracking
-        // 'WebUpdateStats', // Stats tracking
-        // 'webUpdateStats'
-    ];
-
-    // URLs to block entirely (Cloudflare, analytics, etc.)
-    const blockedUrls = [
-        '/cdn-cgi/rum', // Cloudflare Real User Monitoring
-        'cloudflareinsights.com', // Cloudflare analytics beacon
-        '/beacon.min.js', // Cloudflare beacon script
-        'google-analytics.com',
-        'googletagmanager.com',
-        'facebook.com/tr', // Facebook pixel
-        'doubleclick.net',
-        'hotjar.com',
-        'amplitude.com',
-        'mixpanel.com',
-        'segment.io',
-        'sentry.io'
-    ];
-
     // Intercept fetch to modify request payloads (for experiment overrides)
     window.fetch = async function (input, init) {
         const url = typeof input === 'string' ? input : input.url;
 
-        // Block QA/test server requests that cause DNS errors
-        if (url.includes('qa1.match.com') || url.includes('qa2.match.com')) {
+        // Block tracking/analytics URLs FIRST (before any other processing)
+        if (BLOCKED_URLS.some(blocked => url.includes(blocked))) {
             return new Response('', { status: 200 });
         }
 
-        // Block tracking/analytics URLs entirely
-        if (blockedUrls.some(blocked => url.includes(blocked))) {
+        // Capture headers from OkCupid API requests
+        if (url.includes('okcupid.com') && init?.headers) {
+            captureHeaders(init.headers);
+        }
+
+        // Block QA/test server requests that cause DNS errors
+        if (url.includes('qa1.match.com') || url.includes('qa2.match.com')) {
             return new Response('', { status: 200 });
         }
 
@@ -254,7 +386,24 @@
         if (url.includes('graphql') && init?.body) {
             try {
                 const body = JSON.parse(init.body);
-                if (blockedOperations.includes(body.operationName)) {
+
+                // Stop read receipt mutations when anonymous mode is enabled
+                if (settings.anonymousMessageRead &&
+                    (body.operationName === 'WebConversationMessageRead' || body.operationName === 'webConversationMessageRead')) {
+                    console.log('[Cupid Enhanced] Blocked WebConversationMessageRead (anonymous mode)');
+                    return new Response(JSON.stringify({
+                        data: {
+                            conversationMessageRead: {
+                                __typename: 'MutationPayload',
+                                success: true
+                            }
+                        }
+                    }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+                if (BLOCKED_OPERATIONS.includes(body.operationName)) {
                     // Return a fake successful response
                     return new Response(JSON.stringify({ data: null }), {
                         status: 200,
@@ -327,6 +476,8 @@
             if (handlePremium(data)) modified = true;
             if (handleUnblur(data)) modified = true;
 
+            collectLikesProfileMappings(data);
+
             if (modified) {
                 return JSON.stringify(data);
             }
@@ -337,4 +488,204 @@
             return text;
         }
     };
+
+    // =============================================================================
+    // Console API - Expose functions to window for use in browser console
+    // =============================================================================
+
+    // Store pending promises waiting for responses from content script
+    const pendingRequests = new Map();
+    let requestId = 0;
+
+    // Listen for responses from the content script (isolated world)
+    window.addEventListener('message', (event) => {
+        if (event.source !== window) return;
+
+        if (event.data.type === 'CUPID_API_RESPONSE') {
+            const { id, success, data, error } = event.data;
+            const pending = pendingRequests.get(id);
+            if (pending) {
+                pendingRequests.delete(id);
+                if (success) {
+                    pending.resolve(data);
+                } else {
+                    pending.reject(new Error(error));
+                }
+            }
+        }
+    });
+
+    /**
+     * Send a request to the content script and wait for response
+     */
+    function sendToContentScript(action, payload = {}) {
+        return new Promise((resolve, reject) => {
+            const id = ++requestId;
+            pendingRequests.set(id, { resolve, reject });
+
+            window.postMessage({
+                type: 'CUPID_API_REQUEST',
+                id,
+                action,
+                payload
+            }, '*');
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                if (pendingRequests.has(id)) {
+                    pendingRequests.delete(id);
+                    reject(new Error('Request timed out'));
+                }
+            }, 30000);
+        });
+    }
+
+    /**
+     * Cupid Enhanced Console API
+     * Access via window.cupidAPI in the browser console
+     */
+    window.cupidAPI = {
+        /**
+         * Get current user's read receipt token count and other premium features
+         * @returns {Promise<object>}
+         */
+        getTokenCounts: () => sendToContentScript('getTokenCounts'),
+
+        /**
+         * Get likes cap information
+         * @returns {Promise<object>}
+         */
+        getLikesCap: () => sendToContentScript('getLikesCap'),
+
+        /**
+         * Get the featured question with matching users (Question of the Day)
+         * @param {string[]} [excludedUserIds=[]] - Array of user IDs to exclude from results
+         * @returns {Promise<object>}
+         */
+        getFeaturedQuestion: (excludedUserIds = []) => sendToContentScript('getFeaturedQuestion', { excludedUserIds }),
+
+        /**
+         * Get basic profile information for a user
+         * @param {string} targetId - The user ID to get profile info for
+         * @returns {Promise<object>}
+         */
+        getMatchProfile: (targetId) => sendToContentScript('getMatchProfile', { targetId }),
+
+        /**
+         * Get a conversation thread with a specific user
+         * @param {string} targetId - User ID from messages URL (e.g., /messages/12345678)
+         * @param {number} [limit=50] - Number of messages to fetch
+         * @param {string} [before] - Pagination cursor for older messages (use message ID)
+         * @returns {Promise<object>}
+         */
+        getConversationThread: (targetId, limit = 50, before = null) =>
+            sendToContentScript('getConversationThread', { targetId, limit, before }),
+
+        /**
+         * Get all conversations and matches (Messages Main)
+         * @param {string} userId - The current user's ID
+         * @param {string} [filter='ALL'] - Filter type: 'ALL', 'REPLIES', 'MATCHES'
+         * @param {string} [after] - Pagination cursor for more results
+         * @returns {Promise<object>}
+         */
+        getMessagesMain: (userId, filter = 'ALL', after = null) =>
+            sendToContentScript('getMessagesMain', { userId, filter, after }),
+
+        /**
+         * Vote on a user (like/pass)
+         * @param {string} targetId - User ID to vote on
+         * @param {string} vote - Vote type: 'LIKE', 'PASS', or 'SUPERLIKE'
+         * @param {string} [voteSource='INCOMING_LIKES_SUPERLIKE_INTRO'] - Source of vote (INCOMING_LIKES_SUPERLIKE_INTRO, INCOMING_LIKES, etc.)
+         * @returns {Promise<object>}
+         */
+        vote: (targetId, vote = 'LIKE', voteSource = 'INCOMING_LIKES_SUPERLIKE_INTRO') =>
+            sendToContentScript('vote', { targetId, vote, voteSource }),
+
+        /**
+         * Make a general GraphQL request
+         * @param {string} operationName - GraphQL operation name
+         * @param {string} query - GraphQL query string
+         * @param {object} variables - GraphQL variables
+         * @returns {Promise<object>}
+         */
+        graphQL: (operationName, query, variables = {}) =>
+            sendToContentScript('graphQL', { operationName, query, variables }),
+
+        /**
+         * Make a general API request
+         * @param {string} url - API URL
+         * @param {object} options - Request options (method, body, headers)
+         * @returns {Promise<object>}
+         */
+        request: (url, options = {}) => sendToContentScript('request', { url, options }),
+
+        /**
+         * Show help information
+         */
+        help: () => {
+            console.log(`
+%c🏹 Cupid Enhanced Console API %c
+
+Available commands:
+
+%cawait cupidAPI.getTokenCounts()%c
+    - Check your token counts (read receipts, boosts, superlikes)
+
+%cawait cupidAPI.getLikesCap()%c
+  - Get likes remaining and reset time
+
+%cawait cupidAPI.getFeaturedQuestion()%c
+  - Get the featured question with matching users
+  - Optional param: array of user IDs to exclude
+
+%cawait cupidAPI.getMatchProfile('USER_ID')%c
+  - Get basic profile info (name, age, location, match %)
+
+%cawait cupidAPI.getConversationThread('USER_ID')%c
+  - Fetch messages with a user
+  - Optional 2nd param: number of messages (default: 50)
+  - Optional 3rd param: pagination cursor for older messages
+
+%cawait cupidAPI.getMessagesMain('USER_ID')%c
+  - Get all conversations and matches
+  - 1st param: your user ID (required)
+  - Optional 2nd param: filter ('ALL', 'REPLIES', 'MATCHES')
+  - Optional 3rd param: pagination cursor for more results
+
+%cawait cupidAPI.vote('USER_ID', 'LIKE')%c
+  - Vote on a user: 'LIKE', 'PASS', or 'SUPERLIKE'
+  - Optional 3rd param: voteSource (default: 'INCOMING_LIKES_SUPERLIKE_INTRO')
+
+%cawait cupidAPI.graphQL(operationName, query, variables)%c
+  - Make a custom GraphQL request
+
+%cawait cupidAPI.request(url, options)%c
+  - Make a custom API request
+
+%cExample:%c
+    const status = await cupidAPI.getTokenCounts();
+    console.log('Read Receipt Tokens:', status.data.me.readReceiptTokenCount);
+`,
+                'color: #ff1493; font-size: 16px; font-weight: bold;',
+                '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #00bfff; font-family: monospace;', '',
+                'color: #32cd32; font-style: italic;', ''
+            );
+        }
+    };
+
+    // Log availability on load
+    console.log('%c🏹 Cupid Enhanced API available! Type %ccupidAPI.help()%c for commands.',
+        'color: #ff1493;',
+        'color: #00bfff; font-family: monospace;',
+        'color: #ff1493;'
+    );
 })();

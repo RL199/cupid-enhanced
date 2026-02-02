@@ -1,10 +1,9 @@
-
 let currentSettings = { ...DEFAULT_SETTINGS };
 
 // Load settings from storage
 async function loadSettings() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get([SETTINGS_KEY], (result) => {
+    return new Promise(resolve => {
+        chrome.storage.local.get([SETTINGS_KEY], result => {
             if (result[SETTINGS_KEY]) {
                 currentSettings = result[SETTINGS_KEY];
             }
@@ -22,12 +21,14 @@ async function saveSettings(settings) {
     try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab?.id) {
-            await chrome.tabs.sendMessage(tab.id, {
-                type: 'SETTINGS_UPDATED',
-                settings: settings
-            }).catch(() => {
-                // Tab might not have content script yet, ignore error
-            });
+            await chrome.tabs
+                .sendMessage(tab.id, {
+                    type: 'SETTINGS_UPDATED',
+                    settings: settings
+                })
+                .catch(() => {
+                    // Tab might not have content script yet, ignore error
+                });
         }
     } catch (error) {
         // Ignore errors when querying tabs
@@ -63,7 +64,7 @@ function setupEventListeners() {
     // Make entire setting items clickable
     const settingItems = document.querySelectorAll('.setting-item');
     settingItems.forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', e => {
             // Don't double-toggle if clicking directly on the toggle switch
             if (!e.target.closest('.toggle-switch')) {
                 const key = item.dataset.setting;
@@ -99,7 +100,8 @@ async function init() {
         setupEventListeners();
     } catch (error) {
         console.error('Failed to initialize popup:', error);
-        document.body.innerHTML = '<div style="padding: 20px; color: #ef4444;">Failed to load settings. Please reload the extension.</div>';
+        document.body.innerHTML =
+            '<div style="padding: 20px; color: #ef4444;">Failed to load settings. Please reload the extension.</div>';
     }
 }
 

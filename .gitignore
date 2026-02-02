@@ -1,9 +1,18 @@
 # IDE folders
-.vscode/
 .idea/
 .hintrc
 svg-assets/
 .github/copilot-instructions.md
+.github/agents/
+.github/instructions/
 source files/
 python-scripts/
 notes/
+
+# config files
+.vscode/
+.eslintrc.json
+.prettierrc
+
+# Generated files
+installed-extensions.txt
