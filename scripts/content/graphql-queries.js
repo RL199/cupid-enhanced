@@ -914,3 +914,195 @@ query WebGetMessagesMain($userid: String!, $filter: ConversationsAndMatchesFilte
         throw error;
     }
 }
+
+/**
+
+/**
+ * Get incoming likes with pagination
+ * @param {string} sort - Sort method (e.g., 'LIKES_VIEWS_GLOBAL', 'NEW', 'MATCH_PERCENT')
+ * @param {string} after - Cursor for pagination
+ * @returns {Promise<object>} Incoming likes data
+ */
+async function getIncomingLikes(sort = 'LIKES_VIEWS_GLOBAL', after = null) {
+    const query = `fragment NotificationCountsFragment on User {
+  notificationCounts {
+    likesMutual
+    likesIncoming
+    likesAndViews
+    messages
+    intros
+    __typename
+  }
+  __typename
+}
+
+fragment UserFragment on User {
+  id
+  joinDate
+  ...NotificationCountsFragment
+  __typename
+}
+
+fragment UserBlurredImage on User {
+  primaryImageBlurred {
+    square225
+    __typename
+  }
+  __typename
+}
+
+fragment UserPrimaryImagesFragment on User {
+  primaryImage {
+    id
+    caption
+    original
+    square60
+    square82
+    square100
+    square120
+    square160
+    square225
+    square400
+    square800
+    __typename
+  }
+  __typename
+}
+
+fragment MatchHighlightsFragment on MatchHighlights {
+  age
+  hasIntroMessage
+  isOnline
+  isVerified
+  matchScore
+  dynamicHighlight {
+    __typename
+    ... on LocationHighlight {
+      summary
+      __typename
+    }
+    ... on RelationshipIntentHighlight {
+      sharedIntents
+      __typename
+    }
+  }
+  __typename
+}
+
+fragment UserrowMatchFragment on Match {
+  matchPercent
+  senderLikeTime
+  senderLikes
+  senderVote
+  targetLikeTime
+  targetVote
+  likeTime
+  senderMessageTime
+  targetMessageTime
+  targetLikeViaSpotlight
+  targetLikeViaSuperBoost
+  senderPassed
+  firstMessage {
+    text
+    __typename
+  }
+  targetViewedMe
+  user {
+    id
+    username
+    displayname
+    age
+    isOnline
+    userLocation {
+      id
+      publicName
+      __typename
+    }
+    ...UserPrimaryImagesFragment
+    ...UserBlurredImage
+    __typename
+  }
+  matchHighlights {
+    ...MatchHighlightsFragment
+    __typename
+  }
+  __typename
+}
+
+fragment PromoFragment on Promo {
+  upsellType
+  featureType
+  name
+  __typename
+}
+
+fragment MatchPreviewBlurredInfo on MatchPreview {
+  primaryImageBlurred {
+    square225
+    __typename
+  }
+  matchHighlights {
+    ...MatchHighlightsFragment
+    __typename
+  }
+  __typename
+}
+
+query userrowsIncomingLikes($after: String, $sort: LikesListSort, $includeViews: Boolean) {
+  me {
+    ...UserFragment
+    id
+    likes: likesIncomingWithPreviews(
+      after: $after
+      sort: $sort
+      includeViews: $includeViews
+    ) {
+      data {
+        ... on Match {
+          ...UserrowMatchFragment
+          __typename
+        }
+        ... on MatchPreview {
+          hasFirstMessage
+          ...MatchPreviewBlurredInfo
+          targetViewedMe
+          primaryImage {
+            id
+            square225
+            __typename
+          }
+          targetSuperlikes
+          __typename
+        }
+        __typename
+      }
+      pageInfo {
+        after
+        hasMore
+        total
+        __typename
+      }
+      __typename
+    }
+    lastBoost {
+      id
+      startTime
+      endTime
+      __typename
+    }
+    promosForPage(page: LIKES_INCOMING) {
+      ...PromoFragment
+      __typename
+    }
+    __typename
+  }
+}`;
+
+    const variables = {
+        sort,
+        includeViews: true,
+        after
+    };
+
+    return okcupidGraphQL('userrowsIncomingLikes', query, variables);
+}

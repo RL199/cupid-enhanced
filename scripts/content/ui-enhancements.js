@@ -16,6 +16,8 @@ var isFetchingMetadata = false;
 var lastFetchedUserId = null;
 var likesProfileMap = {};
 var likesProfileMapLoaded = false;
+var likesTotalFromResponse = null;
+var likesFetchAborted = false;
 
 // =============================================================================
 // Style Injection Helpers
@@ -99,9 +101,10 @@ async function loadLikesProfileMap() {
 }
 
 function updateLikesProfileMap(entries) {
-    if (!isExtensionContextValid()) return;
+    if (!isExtensionContextValid()) return 0;
 
     let updated = false;
+    let addedCount = 0;
 
     entries.forEach(entry => {
         const imageUrl = normalizeImageUrl(entry?.imageUrl);
@@ -111,21 +114,384 @@ function updateLikesProfileMap(entries) {
         if (likesProfileMap[imageUrl] !== profileId) {
             likesProfileMap[imageUrl] = profileId;
             updated = true;
+            addedCount += 1;
         }
     });
 
     if (updated) {
-        chrome.storage.local
-            .set({ [STORAGE_KEYS.likesProfileMap]: likesProfileMap })
-            .catch(error => {
-                console.error('[Cupid Enhanced] Failed to persist likes profile map:', error.message);
-            });
+        chrome.storage.local.set({ [STORAGE_KEYS.likesProfileMap]: likesProfileMap }).catch(error => {
+            console.error('[Cupid Enhanced] Failed to persist likes profile map:', error.message);
+        });
     }
+
+    return addedCount;
 }
 
 function normalizeImageUrl(url) {
     if (!url || typeof url !== 'string') return null;
     return url.split('?')[0];
+}
+
+function base64EncodeCursor(value) {
+    if (!value || typeof value !== 'string') return null;
+    try {
+        return btoa(value);
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to base64 encode cursor:', error.message);
+        return null;
+    }
+}
+
+function base64DecodeCursor(value) {
+    if (!value || typeof value !== 'string') return null;
+    try {
+        return atob(value);
+    } catch (error) {
+        console.error('[Cupid Enhanced] Failed to base64 decode cursor:', error.message);
+        return null;
+    }
+}
+
+function getLikesSortOptions() {
+    return [
+        'LIKES_VIEWS_GLOBAL',
+        'LAST_LOGIN_DESCENDING',
+        'DISTANCE_ASCENDING',
+        'MATCH_SCORE_DESCENDING',
+        'JOIN_DATE_DESCENDING',
+        'VIEWED_ME',
+        'AGE_ASCENDING',
+        'AGE_DESCENDING'
+    ];
+}
+
+function getInterestedInYouCount() {
+    const tabsContainer = document.querySelector('[data-cy="likesPage.tabs"]');
+    const candidates = tabsContainer
+        ? tabsContainer.querySelectorAll('a, [role="tab"], button')
+        : document.querySelectorAll('a, [role="tab"], button');
+
+    for (const candidate of candidates) {
+        const text = candidate.textContent || '';
+        if (!text.includes('Interested in You')) continue;
+        const match = text.match(/\((\d+)\)/);
+        if (match) {
+            const parsed = parseInt(match[1], 10);
+            if (!Number.isNaN(parsed)) return parsed;
+        }
+    }
+
+    return null;
+}
+
+function getLikesProfileIdCount() {
+    const ids = Object.values(likesProfileMap).filter(Boolean);
+    return new Set(ids).size;
+}
+
+function getLikesTargetCount() {
+    const domCount = getInterestedInYouCount();
+    if (typeof likesTotalFromResponse === 'number' && typeof domCount === 'number') {
+        return Math.max(likesTotalFromResponse, domCount);
+    }
+    if (typeof likesTotalFromResponse === 'number') return likesTotalFromResponse;
+    return domCount;
+}
+
+function getLikesYouHeaderContainer() {
+    const likesPage = document.querySelector('[data-cy="likesPage"]');
+    if (!likesPage) return null;
+
+    // Mount directly on likesPage for fixed positioning
+    return likesPage;
+}
+
+function ensureLikesYouFetchButton() {
+    const headerContainer = getLikesYouHeaderContainer();
+    if (!headerContainer) {
+        console.debug('[Cupid Enhanced] Likes button: header container not found');
+        return;
+    }
+
+    if (headerContainer.querySelector('.cupid-fetch-likes-wrapper')) {
+        console.debug('[Cupid Enhanced] Likes button: already mounted');
+        return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'cupid-fetch-likes-wrapper';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cupid-fetch-likes-ids';
+    button.textContent = 'Fetch Interested Profiles';
+    button.addEventListener('click', () => {
+        handleLikesYouFetchButtonClick(button);
+    });
+
+    const status = document.createElement('div');
+    status.className = 'cupid-fetch-likes-status';
+    status.textContent = '';
+
+    wrapper.append(button, status);
+    headerContainer.appendChild(wrapper);
+}
+
+function collectUserImageUrls(user) {
+    const urls = new Set();
+    const primaryImage = user?.primaryImage;
+    if (primaryImage) {
+        [
+            primaryImage.original,
+            primaryImage.square800,
+            primaryImage.square400,
+            primaryImage.square225,
+            primaryImage.square160,
+            primaryImage.square120,
+            primaryImage.square100,
+            primaryImage.square82,
+            primaryImage.square60
+        ]
+            .map(normalizeImageUrl)
+            .filter(Boolean)
+            .forEach(url => urls.add(url));
+    }
+
+    return [...urls];
+}
+
+function extractLikesImageUrl(item) {
+    if (!item || typeof item !== 'object') return null;
+
+    if (item.user?.primaryImage?.square225) return item.user.primaryImage.square225;
+    if (item.user?.primaryImage?.original) return item.user.primaryImage.original;
+
+    if (item.primaryImage?.square225) return item.primaryImage.square225;
+    if (item.primaryImage?.original) return item.primaryImage.original;
+
+    if (item.primaryImageBlurred?.square225) return item.primaryImageBlurred.square225;
+
+    return null;
+}
+
+function extractLikesProfileEntries(result) {
+    const entries = [];
+    if (result?.errors?.length) {
+        console.warn('[Cupid Enhanced] Likes fetch: response errors', result.errors);
+    }
+
+    const likes = result?.data?.me?.likes;
+    if (typeof likes?.pageInfo?.total === 'number') {
+        likesTotalFromResponse = likes.pageInfo.total;
+    }
+    const likesData = likes?.data;
+    if (!Array.isArray(likesData) || likesData.length === 0) {
+        return entries;
+    }
+
+    const firstImage = normalizeImageUrl(extractLikesImageUrl(likesData[0]));
+    const lastImage = normalizeImageUrl(extractLikesImageUrl(likesData[likesData.length - 1]));
+
+    const afterCursor = likes?.pageInfo?.after;
+    const decodedAfter = base64DecodeCursor(afterCursor);
+    if (decodedAfter && lastImage) {
+        entries.push({ profileId: decodedAfter, imageUrl: lastImage, cursor: afterCursor });
+    }
+
+    likesData.forEach(item => {
+        const user = item?.user;
+        const profileId = user?.id;
+        if (!profileId) return;
+
+        const imageUrls = collectUserImageUrls(user);
+        imageUrls.forEach(imageUrl => {
+            entries.push({ imageUrl, profileId });
+        });
+    });
+
+    return entries;
+}
+
+async function fetchIncomingLikesForCursor(sort, afterCursor, maxRetries = 3) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await getIncomingLikes(sort, afterCursor || null);
+            const entries = extractLikesProfileEntries(response);
+            const addedCount = entries.length ? updateLikesProfileMap(entries) || 0 : 0;
+            return { response, addedCount, error: null };
+        } catch (error) {
+            lastError = error;
+            const status = error.message?.match(/status:\s*(\d+)/)?.[1];
+            if (status === '502' || status === '503' || status === '429') {
+                console.warn(`[Cupid Enhanced] Fetch error ${status}, retry ${attempt}/${maxRetries}...`);
+                await sleep(500 * attempt);
+                continue;
+            }
+            break;
+        }
+    }
+    console.error('[Cupid Enhanced] Fetch failed after retries:', lastError?.message);
+    return { response: null, addedCount: 0, error: lastError };
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const FETCHED_COMBOS_KEY = 'cupid_fetched_combos';
+
+function loadFetchedCombos() {
+    try {
+        const stored = sessionStorage.getItem(FETCHED_COMBOS_KEY);
+        return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+        return new Set();
+    }
+}
+
+function saveFetchedCombos(combos) {
+    try {
+        sessionStorage.setItem(FETCHED_COMBOS_KEY, JSON.stringify([...combos]));
+    } catch (error) {
+        console.warn('[Cupid Enhanced] Failed to save fetched combos:', error.message);
+    }
+}
+
+async function handleLikesYouFetchButtonClick(button) {
+    if (button.dataset.cupidBusy === 'true') {
+        likesFetchAborted = true;
+        button.innerHTML = '<span class="cupid-fetch-spinner"></span> Stopping';
+        button.disabled = true;
+        return;
+    }
+
+    likesFetchAborted = false;
+    button.dataset.cupidBusy = 'true';
+    const wrapper = button.closest('.cupid-fetch-likes-wrapper');
+    const status = wrapper?.querySelector('.cupid-fetch-likes-status') || null;
+
+    button.innerHTML = '<span class="cupid-fetch-spinner"></span> Stop';
+    button.classList.add('cupid-fetch-active');
+    if (status) status.textContent = 'Loading...';
+
+    await loadLikesProfileMap();
+
+    const targetCount = getLikesTargetCount();
+    const initialCount = getLikesProfileIdCount();
+    let currentCount = initialCount;
+    const sortOptions = getLikesSortOptions();
+    let totalAdded = 0;
+    let requestCount = 0;
+    let passes = 0;
+    const maxPasses = 10;
+    const fetchedCombos = loadFetchedCombos();
+    const initialCombosCount = fetchedCombos.size;
+
+    while ((targetCount == null || currentCount < targetCount) && passes < maxPasses && !likesFetchAborted) {
+        passes += 1;
+        let passAdded = 0;
+        let errorCount = 0;
+        let newCombosThisPass = 0;
+        let reachedTarget = false;
+
+        const profileIds = [...new Set(Object.values(likesProfileMap).filter(Boolean))];
+        const cursors = profileIds.map(base64EncodeCursor).filter(Boolean);
+
+        for (const sort of sortOptions) {
+            if (likesFetchAborted || reachedTarget) break;
+
+            const nullKey = `${sort}:__NULL__`;
+            if (!fetchedCombos.has(nullKey)) {
+                newCombosThisPass++;
+                fetchedCombos.add(nullKey);
+                saveFetchedCombos(fetchedCombos);
+                const { addedCount, error } = await fetchIncomingLikesForCursor(sort, null);
+                if (error) errorCount++;
+                totalAdded += addedCount;
+                passAdded += addedCount;
+                requestCount += 1;
+                currentCount = getLikesProfileIdCount();
+                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} IDs`;
+
+                if (targetCount != null && currentCount >= targetCount) {
+                    reachedTarget = true;
+                    break;
+                }
+                await sleep(50);
+            }
+
+            for (const cursor of cursors) {
+                if (likesFetchAborted || reachedTarget) break;
+
+                const comboKey = `${sort}:${cursor}`;
+                if (fetchedCombos.has(comboKey)) continue;
+
+                newCombosThisPass++;
+                fetchedCombos.add(comboKey);
+                saveFetchedCombos(fetchedCombos);
+                const { addedCount, error } = await fetchIncomingLikesForCursor(sort, cursor);
+                if (error) errorCount++;
+                totalAdded += addedCount;
+                passAdded += addedCount;
+                requestCount += 1;
+                currentCount = getLikesProfileIdCount();
+                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} IDs`;
+
+                if (targetCount != null && currentCount >= targetCount) {
+                    reachedTarget = true;
+                    break;
+                }
+                await sleep(50);
+            }
+        }
+
+        currentCount = getLikesProfileIdCount();
+
+        // Exit if target reached
+        if (reachedTarget) {
+            break;
+        }
+
+        // Exit if no new combinations were tried this pass
+        if (newCombosThisPass === 0) {
+            break;
+        }
+
+        if (passAdded === 0) {
+            break;
+        }
+
+        await sleep(100);
+    }
+
+    const newProfilesAdded = currentCount - initialCount;
+    const stoppedEarly = likesFetchAborted;
+    const skippedCombos = initialCombosCount;
+    likesFetchAborted = false;
+
+    console.info('[Cupid Enhanced] Likes fetch: complete', {
+        newProfilesAdded,
+        totalAdded,
+        requestCount,
+        skippedCombos,
+        passes,
+        currentCount,
+        initialCount,
+        targetCount,
+        stoppedEarly
+    });
+
+    if (status) {
+        const targetLabel = targetCount != null ? `${currentCount}/${targetCount}` : `${currentCount}`;
+        const stopLabel = stoppedEarly ? 'Stopped' : 'Done';
+        const newLabel = newProfilesAdded > 0 ? ` • +${newProfilesAdded} new` : '';
+        status.textContent = `${stopLabel} • ${targetLabel} IDs${newLabel}`;
+    }
+    button.disabled = false;
+    button.textContent = 'Fetch Interested Profiles';
+    button.classList.remove('cupid-fetch-active');
+    button.dataset.cupidBusy = 'false';
 }
 
 // =============================================================================
@@ -370,8 +736,11 @@ function enhanceLikesYouPage() {
 
     loadLikesProfileMap();
 
+    ensureLikesYouFetchButton();
+
     const observer = createBodyObserver(() => {
         if (!currentSettings.enhanceLikesYouPage) return;
+        ensureLikesYouFetchButton();
         decorateLikesYouCards();
     });
 
@@ -392,14 +761,18 @@ function decorateLikesYouCards() {
     cards.forEach(card => {
         if (!card.dataset.cupidProfileBound) {
             card.dataset.cupidProfileBound = 'true';
-            card.addEventListener('click', event => {
-                const profileId = card.dataset.cupidProfileId;
-                if (!profileId) return;
+            card.addEventListener(
+                'click',
+                event => {
+                    const profileId = card.dataset.cupidProfileId;
+                    if (!profileId) return;
 
-                event.preventDefault();
-                event.stopPropagation();
-                window.location.href = `https://www.okcupid.com/profile/${profileId}`;
-            }, true);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.location.href = `https://www.okcupid.com/profile/${profileId}`;
+                },
+                true
+            );
         }
 
         const imageEl = card.querySelector('[style*="background-image"]');

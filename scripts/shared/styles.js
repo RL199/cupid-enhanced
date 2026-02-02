@@ -249,23 +249,96 @@ var LIKES_YOU_STYLES = `
 
     .cupid-open-profile-icon {
         position: absolute;
-        top: 8px;
-        right: 4px;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
+        top: 0px;
+        right: 0px;
+        width: 26px;
+        /* height: 28px; */
+        border-radius: 0% 0% 0% 50%;
         background: #e00095;
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 10000;
         cursor: pointer;
-        border: 1px solid rgba(255, 255, 255, 0.6);
+        border: none;
     }
 
     .cupid-open-profile-icon svg {
         width: 16px;
         height: 16px;
         fill: #ffffff;
+    }
+
+    .cupid-fetch-likes-wrapper {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        z-index: 1000000;
+    }
+
+    .cupid-fetch-likes-ids {
+        background: #ff1493;
+        color: #ffffff;
+        border: none;
+        border-radius: 24px;
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: background 0.2s, transform 0.1s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cupid-fetch-likes-ids:hover {
+        background: #e01280;
+        transform: scale(1.03);
+    }
+
+    .cupid-fetch-likes-ids.cupid-fetch-active {
+        background: #dc3545;
+    }
+
+    .cupid-fetch-likes-ids.cupid-fetch-active:hover {
+        background: #c82333;
+    }
+
+    .cupid-fetch-likes-ids:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .cupid-fetch-spinner {
+        width: 16px;cupid-fetch-likes-wrapper
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: cupid-spin 0.8s linear infinite;
+    }
+
+    @keyframes cupid-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .cupid-fetch-likes-status {
+        background: rgba(0, 0, 0, 0.8);
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .cupid-fetch-likes-status:empty {
+        display: none;
     }
 `;

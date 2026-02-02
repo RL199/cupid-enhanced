@@ -245,36 +245,36 @@ function injectPhotoUploadStyles() {
     const styles = `
         #cupid-photo-upload-btn {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 24px;
+            left: 24px;
             z-index: 10000;
             display: flex;
             align-items: center;
             gap: 8px;
             padding: 12px 20px;
-            background: linear-gradient(135deg, #ff1493, #ff69b4);
-            color: white;
+            background: #ff1493;
+            color: #ffffff;
             border: none;
-            border-radius: 50px;
+            border-radius: 24px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: background 0.2s, transform 0.1s;
         }
 
         #cupid-photo-upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 20, 147, 0.5);
+            background: #e01280;
+            transform: scale(1.03);
         }
 
         #cupid-photo-upload-btn:active {
-            transform: translateY(0);
+            transform: scale(1);
         }
 
         #cupid-photo-upload-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
         }
 
         #cupid-photo-upload-modal {
