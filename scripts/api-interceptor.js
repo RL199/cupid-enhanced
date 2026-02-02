@@ -5,8 +5,8 @@
     console.log('###Cupid Enhanced: API Interceptor Loaded###');
 
     let settings = {
-        staffMode: false,
-        anonymousMessageRead: false
+        staffMode: true,
+        anonymousMessageRead: true
     };
 
     // =============================================================================
