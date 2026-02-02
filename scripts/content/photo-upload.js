@@ -245,8 +245,8 @@ function injectPhotoUploadStyles() {
     const styles = `
         #cupid-photo-upload-btn {
             position: fixed;
-            bottom: 24px;
-            left: 24px;
+            bottom: 12px;
+            left: 38px;
             z-index: 10000;
             display: flex;
             align-items: center;

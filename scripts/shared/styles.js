@@ -271,8 +271,8 @@ var LIKES_YOU_STYLES = `
 
     .cupid-fetch-likes-wrapper {
         position: fixed;
-        bottom: 24px;
-        right: 24px;
+        bottom: 12px;
+        right: 20px;
         display: flex;
         flex-direction: column;
         align-items: flex-end;
