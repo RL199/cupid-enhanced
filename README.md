@@ -64,15 +64,20 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 - **📅 Photo Dates** - See when profile photos were uploaded on the discover page and fullscreen photo viewer
 - **💌 See All Intros** - View all intro messages you've received
 - **❓ See All Question Answers** - View all question answers on profiles
+- **📸 High Resolution Photo Upload** - Upload high-resolution photos directly to your profile (toggleable)
+- **🕵️ Anonymous Message Read** - Disable read receipts to read messages without sending notifications (toggleable)
 
 ### 🎨 Layout & Navigation
-- **📐 Better Discover Layout** - Expanded page width with centered layout, photo dates, and likes remaining counter
-- **💕 Better Likes You Layout** - Improved grid layout for the likes you page
-- **🖱️ Horizontal Scroll** - Use mouse wheel to navigate through profiles on discover page and photos in fullscreen viewer
+- **📐 Better Discover Layout** - Expanded page width with centered layout, photo dates, and likes remaining counter (toggleable)
+- **💕 Better Likes You Layout** - Improved grid layout for the likes you page (toggleable)
+- **🖱️ Horizontal Scroll** - Use mouse wheel to navigate through profiles on discover page and photos in fullscreen viewer (toggleable)
+- **❤️ Cupid's Picks Buttons** - Add like and pass buttons to Cupid's Picks profiles for easier navigation
+- **👥 Fetch All Interested Profiles** - View all interested profiles including likes you
 - **🚫 Hide Promotions** - Clean interface without premium upgrade ads
-- **🏆 Premium plus Badge** - Display premium plus badge (visual only)
+- **🏆 Premium Plus Badge** - Display premium plus badge (visual only)
 - **⌨️ Shortcuts** - Use `Ctrl+Enter` to send intro messages
 - **⏪ Rewind** - Enable the rewind button functionality
+- **🔧 Staff Mode** - Access staff panel on the left sidebar (toggleable)
 
 ### 🎛️ Customization
 - **⚙️ Settings Popup** - Beautiful dark-themed popup with easy toggle controls for all features
@@ -99,11 +104,17 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 
 ## 🔧 Configuration
 
-After installation, click the extension icon in your Chrome toolbar to open the settings popup. You can enable or disable any feature:
+After installation, click the extension icon in your Chrome toolbar to open the settings popup. Available toggleable settings:
 
-1. **Privacy & Photos** section controls image visibility and data display
-2. **Layout & Navigation** section controls page layout, browsing, and ad blocking
-3. All settings are saved automatically and apply immediately
+- **Staff Mode** - Shows staff panel on the left sidebar
+- **Better Discover Layout** - Expands page width and adds additional profile information
+- **Better Likes You Layout** - Displays likes you layout in a grid with more profiles
+- **Horizontal Mouse Scroll to Browse** - Navigate profile photos using horizontal mouse scroll
+- **Anonymous Message Read** - Blocks read receipts so messages stay unseen
+- **Photo Upload Button** - Shows a button to upload high resolution photos
+- **Dark Mode (Experimental)** - Applies dark theme styling across all pages
+
+All settings are saved automatically. Most features work immediately, but some require a page refresh.
 
 ## 📊 Usage
 
