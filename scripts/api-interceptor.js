@@ -228,7 +228,7 @@
         if (session) {
             session.isStaff = settings.staffMode;
             session.isInEU = false; // not sure if this does anything
-            // session.guestId = '2DZnGaELZWAH2Pxi8yCKrA2'; //TODO: research about guestId usage
+            // session.guestId = ''; //TODO: research about guestId usage
             session.__typename = 'Session';
 
             // Inject Session Gatekeeper Checks
