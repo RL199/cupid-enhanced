@@ -330,6 +330,7 @@
         me.premiums.INTROS = true; // Access to Intros
         me.premiums.INCOGNITO_BUNDLE = true; // Incognito mode
         me.premiums.UNLIMITED_REWINDS = true; // Unlimited rewinds
+        me.premiums.UNLIMITED_LIKES = true; // Unlimited likes
         me.premiums.READ_RECEIPTS = true; // Read receipts for messages
         me.premiums.SEE_PUBLIC_QUESTIONS = true; // See public question answers
         me.premiums.__typename = 'Premiums';
