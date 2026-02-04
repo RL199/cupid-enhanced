@@ -412,7 +412,7 @@ async function handleLikesYouFetchButtonClick(button) {
                 passAdded += addedCount;
                 requestCount += 1;
                 currentCount = getLikesProfileIdCount();
-                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} IDs`;
+                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} Profiles`;
 
                 if (targetCount != null && currentCount >= targetCount) {
                     reachedTarget = true;
@@ -436,7 +436,7 @@ async function handleLikesYouFetchButtonClick(button) {
                 passAdded += addedCount;
                 requestCount += 1;
                 currentCount = getLikesProfileIdCount();
-                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} IDs`;
+                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} Profiles`;
 
                 if (targetCount != null && currentCount >= targetCount) {
                     reachedTarget = true;
