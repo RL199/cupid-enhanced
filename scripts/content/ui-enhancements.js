@@ -682,36 +682,6 @@ function createBodyObserver(callback) {
     return observer;
 }
 
-// =============================================================================
-// Likes Count UI
-// =============================================================================
-
-function updateLikesIncomingCount() {
-    const count = parseInt(localStorage.getItem(STORAGE_KEYS.likesCount) || '0', 10);
-    if (count > 0) updateLikesUI(count);
-}
-
-function updateLikesUI(count) {
-    const likesElement = document.querySelector(SELECTORS.likesCount);
-    if (likesElement) {
-        likesElement.textContent = count;
-        replaceInterestWithLikes();
-    }
-}
-
-function replaceInterestWithLikes() {
-    document.querySelectorAll(SELECTORS.navbarLinkText).forEach(element => {
-        if (element.textContent.includes('Interest')) {
-            element.textContent = 'Likes';
-        }
-    });
-}
-
-function startLikesCountPolling() {
-    setInterval(() => {
-        updateLikesIncomingCount();
-    }, 2000);
-}
 
 // =============================================================================
 // Discover Page Enhancement

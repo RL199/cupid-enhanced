@@ -32,7 +32,6 @@ async function init() {
     await loadSettings();
     setupEventListeners();
     setupObservers();
-    updateLikesIncomingCount();
 
     if (currentSettings.darkMode) {
         enableDarkMode();
@@ -81,7 +80,6 @@ function setupEventListeners() {
     setupKeyboardShortcuts();
     listenForLikesData();
     listenForSettingsUpdates();
-    startLikesCountPolling();
     setupPassButtonListener();
 }
 

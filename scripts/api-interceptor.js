@@ -358,6 +358,41 @@
         return modified;
     };
 
+    // =============================================================================
+    // Navbar Likes Count - JS Bundle Interception
+    // Patches the navbar-likes-count component to read from localStorage
+    // instead of relying on content script polling
+    // =============================================================================
+
+    let navbarLikesBundlePatched = false;
+
+    /**
+     * Patch the navbar likes count component in a JS bundle to read
+     * the count from the OkCupid site's 'previous_likes_count' localStorage key.
+     * Targets the destructuring pattern: {count:VAR, className:VAR} = VAR;
+     * and injects a localStorage override right after it.
+     */
+    function handleNavbarLikesBundle(text) {
+        let patched = text;
+
+        // The component destructures: {count:VAR, className:VAR} = VAR;
+        // Inject a localStorage override for the count variable after the destructuring
+        patched = patched.replace(
+            /(\{count:(\w+),className:(\w+)\}\s*=\s*\w+;)/,
+            (match, full, countVar) => {
+                const override = `var _lc=parseInt(localStorage.getItem("previous_likes_count"),10);if(_lc>0){${countVar}=_lc;}`;
+                return full + override;
+            }
+        );
+
+        if (patched !== text) {
+            navbarLikesBundlePatched = true;
+            console.log('[Cupid Enhanced] Patched navbar likes count bundle to use localStorage');
+        }
+
+        return patched;
+    }
+
     // --- Response Interceptor ---
 
     const originalFetch = window.fetch;
@@ -464,6 +499,11 @@
         const text = await originalText.call(this);
         const { url } = this;
 
+        // Intercept JS bundles containing the navbar likes count component
+        if (!navbarLikesBundlePatched && !url.includes('graphql') && text.includes('navbar-likes-count')) {
+            return handleNavbarLikesBundle(text);
+        }
+
         if (!url.includes('graphql')) return text;
 
         try {
@@ -487,6 +527,63 @@
             return text;
         }
     };
+
+    // =============================================================================
+    // Navbar Likes Count - DOM Update via localStorage Interception
+    // Handles initial render + reactive updates without polling
+    // =============================================================================
+
+    /**
+     * Update the navbar likes count element and replace "Interest" with "Likes"
+     */
+    function updateNavbarLikesDOM(count) {
+        if (!count || count <= 0) return;
+        const likesElement = document.querySelector('.count');
+        if (likesElement && likesElement.textContent !== String(count)) {
+            likesElement.textContent = count;
+        }
+        // Replace "Interest" with "Likes" in navbar link text
+        document.querySelectorAll('.navbar-link-text').forEach(el => {
+            if (el.textContent.includes('Interest')) {
+                el.textContent = 'Likes';
+            }
+        });
+    }
+
+    // Override localStorage.setItem to detect when OkCupid updates previous_likes_count
+    const originalSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function (key, value) {
+        originalSetItem(key, value);
+        if (key === 'previous_likes_count') {
+            updateNavbarLikesDOM(parseInt(value, 10));
+        }
+    };
+
+    // One-time MutationObserver: waits for the navbar to render, applies initial count
+    // and "Interest" → "Likes" replacement, then disconnects
+    (function setupNavbarLikesObserver() {
+        const applyInitial = () => {
+            const count = parseInt(localStorage.getItem('previous_likes_count') || '0', 10);
+            updateNavbarLikesDOM(count);
+        };
+
+        const observer = new MutationObserver(() => {
+            if (document.querySelector('.count')) {
+                applyInitial();
+                observer.disconnect();
+            }
+        });
+
+        if (document.body) {
+            applyInitial();
+            observer.observe(document.body, { childList: true, subtree: true });
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                applyInitial();
+                observer.observe(document.body, { childList: true, subtree: true });
+            });
+        }
+    })();
 
     // =============================================================================
     // Console API - Expose functions to window for use in browser console

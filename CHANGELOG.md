@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Interested profiles fetch button fetching wrong profiles.
+- Incoming Likes header loading slowly.
 
 ## [1.3.0]
 
@@ -20,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - likes remaining count not updating correctly.
-
 
 
 ## [1.2.0]
