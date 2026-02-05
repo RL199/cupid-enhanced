@@ -130,7 +130,7 @@
         }
     }
 
-    function extractLikesImageUrl(item) {
+    function extractInterestedImageUrl(item) {
         if (!item || typeof item !== 'object') return null;
 
         if (item.user?.primaryImage?.square225) return item.user.primaryImage.square225;
@@ -144,7 +144,7 @@
         return null;
     }
 
-    function collectLikesProfileMappings(data) {
+    function collectInterestedProfileMappings(data) {
         const likes = data?.data?.me?.likes;
         if (!likes?.data || !Array.isArray(likes.data) || likes.data.length === 0) return;
 
@@ -154,7 +154,7 @@
 
         if (decodedAfter) {
             const lastItem = likes.data[likes.data.length - 1];
-            const lastImage = normalizeImageUrl(extractLikesImageUrl(lastItem));
+            const lastImage = normalizeImageUrl(extractInterestedImageUrl(lastItem));
             if (lastImage) {
                 entries.push({ profileId: decodedAfter, imageUrl: lastImage, cursor: afterCursor });
             }
@@ -163,7 +163,7 @@
         if (lastLikesRequestCursor) {
             const decodedRequest = safeBase64Decode(lastLikesRequestCursor);
             const firstItem = likes.data[0];
-            const firstImage = normalizeImageUrl(extractLikesImageUrl(firstItem));
+            const firstImage = normalizeImageUrl(extractInterestedImageUrl(firstItem));
             if (decodedRequest && firstImage) {
                 entries.push({ profileId: decodedRequest, imageUrl: firstImage, cursor: lastLikesRequestCursor });
             }
@@ -171,15 +171,15 @@
 
         likes.data.forEach(item => {
             const userId = item?.user?.id;
-            const imageUrl = normalizeImageUrl(extractLikesImageUrl(item));
+            const imageUrl = normalizeImageUrl(extractInterestedImageUrl(item));
             if (userId && imageUrl) {
                 entries.push({ profileId: userId, imageUrl });
             }
         });
 
-        if (entries.length > 0) {
+        if (entries.length > 0 && (window.location.href.startsWith('https://www.okcupid.com/who-likes-you') || window.location.href.startsWith('https://okcupid.com/who-likes-you'))) {
             window.postMessage({
-                type: 'LIKES_PROFILE_CURSOR_MAP',
+                type: 'INTERESTED_PROFILE_CURSOR_MAP',
                 operation: lastLikesRequestOperation,
                 entries
             }, '*');
@@ -475,7 +475,7 @@
             if (handlePremium(data)) modified = true;
             if (handleUnblur(data)) modified = true;
 
-            collectLikesProfileMappings(data);
+            collectInterestedProfileMappings(data);
 
             if (modified) {
                 return JSON.stringify(data);

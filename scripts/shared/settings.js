@@ -26,5 +26,5 @@ var STORAGE_KEYS = {
     likesResetTime: 'likes_reset_time',
     likesCount: 'previous_likes_count',
     visitedProfiles: 'visited_profiles',
-    likesProfileMap: 'likes_profile_map'
+    interestedProfileMap: 'interested_profile_map'
 };
