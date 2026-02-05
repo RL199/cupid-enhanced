@@ -386,7 +386,6 @@ async function handleInterestedFetchButtonClick(button) {
     let passes = 0;
     const maxPasses = 10;
     const fetchedCombos = loadFetchedCombos();
-    const initialCombosCount = fetchedCombos.size;
 
     while ((targetCount == null || currentCount < targetCount) && passes < maxPasses && !interestedFetchAborted) {
         passes += 1;
@@ -467,20 +466,7 @@ async function handleInterestedFetchButtonClick(button) {
 
     const newProfilesAdded = currentCount - initialCount;
     const stoppedEarly = interestedFetchAborted;
-    const skippedCombos = initialCombosCount;
     interestedFetchAborted = false;
-
-    console.info('[Cupid Enhanced] Interested fetch: complete', {
-        newProfilesAdded,
-        totalAdded,
-        requestCount,
-        skippedCombos,
-        passes,
-        currentCount,
-        initialCount,
-        targetCount,
-        stoppedEarly
-    });
 
     if (status) {
         const targetLabel = targetCount != null ? `${currentCount}/${targetCount}` : `${currentCount}`;
