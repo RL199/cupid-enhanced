@@ -2,8 +2,6 @@
 (function () {
     'use strict';
 
-    console.log('###Cupid Enhanced: API Interceptor Loaded###');
-
     let settings = {
         staffMode: true,
         anonymousMessageRead: true
