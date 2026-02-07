@@ -8,11 +8,15 @@ svg-assets/
 source files/
 python-scripts/
 notes/
+node_modules/
 
 # config files
 .vscode/
 .eslintrc.json
 .prettierrc
+eslint.config.mjs
+package-lock.json
+package.json
 
 # Generated files
 installed-extensions.txt
