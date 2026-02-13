@@ -77,7 +77,7 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 - **🏆 Premium Plus Badge** - Display premium plus badge (visual only)
 - **⌨️ Shortcuts** - Use `Ctrl+Enter` to send intro messages
 - **⏪ Rewind** - Enable the rewind button functionality
-- **🔧 Staff Mode** - Access staff panel on the left sidebar (toggleable)
+- **🔧 Staff Mode** - Access staff panel on the left sidebar (toggleable). Useful for accessing features like "Question Search" section.
 
 ### 🎛️ Customization
 - **⚙️ Settings Popup** - Beautiful dark-themed popup with easy toggle controls for all features
@@ -106,7 +106,7 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 
 After installation, click the extension icon in your Chrome toolbar to open the settings popup. Available toggleable settings:
 
-- **Staff Mode** - Shows staff panel on the left sidebar
+- **Staff Mode** - Shows staff panel on the left sidebar. Useful for accessing features like the "Question Search" section.
 - **Better Discover Layout** - Expands page width and adds additional profile information
 - **Better Likes You Layout** - Displays likes you layout in a grid with more profiles
 - **Horizontal Mouse Scroll to Browse** - Navigate profile photos using horizontal mouse scroll
@@ -137,12 +137,16 @@ The extension features a beautiful dark-themed popup with gradient colors matchi
 
 ### Technologies Used
 
-- **Chrome Extension Manifest V3** - Latest extension platform
-- **Vanilla JavaScript** - Pure JS with no framework dependencies
-- **Chrome Storage API** - Persistent settings storage
-- **Content Scripts** - DOM manipulation and API interception
-- **Message Passing** - Communication between MAIN and ISOLATED worlds
-- **MutationObserver API** - Dynamic DOM monitoring
+- **Chrome Extension Manifest V3** - Extension platform (service worker background model)
+- **Service Worker (background.js)** - Persistent background tasks and API requests
+- **Vanilla JavaScript (ES2020+)** - No external frameworks or runtime
+- **Chrome Extension APIs** - `storage`, `tabs`, `cookies`, `action` for settings, tab comms and authenticated requests
+- **Content scripts (MAIN & isolated worlds)** - DOM updates and an API interceptor injected into the page
+- **GraphQL interception & Fetch API override** - Intercepts OkCupid GraphQL responses (Response.prototype.text override)
+- **Fetch API & background requests** - Authenticated requests via background service worker
+- **MutationObserver & DOM APIs** - Real-time UI enhancements and element monitoring
+- **Popup UI (HTML/CSS/JS)** - Responsive dark-themed settings popup
+- **No third‑party libraries** - Small footprint; all processing happens client-side
 
 ### Features Implementation
 
@@ -162,19 +166,18 @@ The extension features a beautiful dark-themed popup with gradient colors matchi
 - **🤖 AI Intro Message Generator** - Generate personalized intro messages using AI
 - **🌑 Enhanced Dark Mode** - Full dark mode support across all OkCupid pages
 - **⌨️ Additional Keyboard Shortcuts** - More navigation and action shortcuts
-- **📥 Profile Photo Downloader** - Download profile photos in bulk
-- **🌍 Localization Support** - Multi-language support for the popup and features
 - **💬 Feed Text Translation** - Translate feed text into multiple languages
 - **🛒 Chrome Web Store Publishing** - Make the extension available for easy installation via the Chrome Web Store
 - **🦊 Cross-Browser Compatibility** - Extend support to Firefox and other browsers
 - **📊 Analytics Dashboard** - Provide insights into your dating activity and extension usage
 - **⚡ Auto pass/like for Custom Filters** - Automatically pass or like profiles based on user-defined criteria
-- **🎨 Light/Dark mode Popup Theme Customization** - More options to customize the popup and interface appearance
+
+See more in the [Issues Section](https://github.com/RL199/cupid-enhanced/issues)
 
 
 ## 🔐 Privacy and Security
 
-**Your privacy is our priority.** This extension:
+**Your privacy is a priority.** This extension:
 - ✅ Only runs on OkCupid.com domains
 - ✅ Does not collect or transmit any personal data
 - ✅ Does not track your browsing activity
@@ -188,7 +191,10 @@ The extension requires the following permissions:
 
 - **`storage`** - To save your settings preferences locally
 - **`tabs`** - To communicate settings updates to active OkCupid tabs
-- **Host Permission (`https://www.okcupid.com/*`)** - To run content scripts on OkCupid pages
+- **`cookies`** - To read OkCupid session cookies for authenticated API requests
+- **Host Permission (`https://www.okcupid.com/*`)** - To access core OkCupid pages
+- **Host Permission (`https://*.okcupid.com/*`)** - To run content scripts across OkCupid subdomains
+- **Host Permission (`https://e2p-okapi.api.okcupid.com/*`)** - To access OkCupid GraphQL API endpoints
 
 ## ❓ FAQs
 
@@ -206,7 +212,7 @@ This extension only modifies what you see in your browser. It doesn't perform au
 
 ### How do I update the extension?
 
-If installed manually, you'll need to download the latest release and reload it. Automatic updates will be available once published to the Chrome Web Store.
+You'll need to download the [latest release](https://github.com/RL199/cupid-enhanced/releases) and reload it. Automatic updates will be available once published to the Chrome Web Store.
 
 ## 📞 Contact
 
