@@ -60,6 +60,7 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 ### 🔒 Privacy & Photos
 - **👁️ Reveal Who Liked You** - View clear, unblurred profile pictures of all users who viewed or liked you and sort the list
 - **🛑 Set Dealbreakers** - See only the people who meet your preferences
+- **📷 Photo Requirement Bypass** - Unlock actions that normally require profile photos, such as sending likes and passes
 - **💯 Display Real Like Numbers** - See your actual like count instead of "99+ interested"
 - **📅 Photo Dates** - See when profile photos were uploaded on the discover page and fullscreen photo viewer
 - **💌 See All Intros** - View all intro messages you've received
