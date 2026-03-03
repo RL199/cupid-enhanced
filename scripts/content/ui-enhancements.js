@@ -339,6 +339,96 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function collectAllImageUrlsFromItem(item) {
+    const urls = new Set();
+    if (!item || typeof item !== 'object') return urls;
+
+    // Match items have full user data with all image sizes
+    if (item.user) {
+        collectUserImageUrls(item.user).forEach(url => urls.add(url));
+    }
+
+    // MatchPreview items have limited image data
+    const square225 = normalizeImageUrl(item.primaryImage?.square225);
+    if (square225) urls.add(square225);
+
+    const blurred225 = normalizeImageUrl(item.primaryImageBlurred?.square225);
+    if (blurred225) urls.add(blurred225);
+
+    return urls;
+}
+
+async function pruneStaleProfiles(statusEl) {
+    const allImageUrls = new Set();
+    let afterCursor = null;
+    let hasMore = true;
+    let pageCount = 0;
+    const maxPages = 50;
+
+    while (hasMore && pageCount < maxPages && !interestedFetchAborted) {
+        pageCount++;
+        if (statusEl) statusEl.textContent = `Validating profiles... (page ${pageCount})`;
+
+        try {
+            const response = await getIncomingLikes('LAST_LOGIN_DESCENDING', afterCursor);
+            const likes = response?.data?.me?.likes;
+            const likesData = likes?.data;
+
+            if (typeof likes?.pageInfo?.total === 'number') {
+                interestedTotalFromResponse = likes.pageInfo.total;
+            }
+
+            if (Array.isArray(likesData)) {
+                for (const item of likesData) {
+                    collectAllImageUrlsFromItem(item).forEach(url => allImageUrls.add(url));
+                }
+
+                // Also add discovered entries to the map while we're at it
+                const entries = extractInterestedProfileEntries(response);
+                if (entries.length) updateInterestedProfileMap(entries);
+            }
+
+            hasMore = likes?.pageInfo?.hasMore === true;
+            afterCursor = likes?.pageInfo?.after || null;
+
+            if (!Array.isArray(likesData) || likesData.length === 0) break;
+
+            await sleep(50);
+        } catch (error) {
+            console.error('[Cupid Enhanced] Prune validation failed:', error.message);
+            break;
+        }
+    }
+
+    if (allImageUrls.size === 0) {
+        console.warn('[Cupid Enhanced] Prune: no image URLs collected, skipping removal');
+        return 0;
+    }
+
+    const keysToRemove = Object.keys(interestedProfileMap).filter(url => !allImageUrls.has(url));
+
+    if (keysToRemove.length > 0) {
+        for (const key of keysToRemove) {
+            delete interestedProfileMap[key];
+        }
+        console.log(`[Cupid Enhanced] Pruned ${keysToRemove.length} stale profile URL(s)`);
+        try {
+            await chrome.storage.local.set({ [STORAGE_KEYS.interestedProfileMap]: interestedProfileMap });
+        } catch (error) {
+            console.error('[Cupid Enhanced] Failed to persist pruned map:', error.message);
+        }
+    }
+
+    if (statusEl) {
+        const removed = keysToRemove.length;
+        statusEl.textContent = removed > 0
+            ? `Pruned ${removed} stale URL(s) • ${getInterestedProfileIdCount()} IDs remain`
+            : `Validated ${allImageUrls.size} URLs • ${getInterestedProfileIdCount()} IDs`;
+    }
+
+    return keysToRemove.length;
+}
+
 const FETCHED_COMBOS_KEY = 'cupid_fetched_combos';
 
 function loadFetchedCombos() {
@@ -376,6 +466,14 @@ async function handleInterestedFetchButtonClick(button) {
     if (status) status.textContent = 'Loading...';
 
     await loadInterestedProfileMap();
+
+    // Prune stale profiles before fetching new ones
+    if (!interestedFetchAborted) {
+        await pruneStaleProfiles(status);
+    }
+
+    // Clear fetched combos after prune since the map may have changed
+    sessionStorage.removeItem(FETCHED_COMBOS_KEY);
 
     const targetCount = getInterestedTargetCount();
     const initialCount = getInterestedProfileIdCount();
