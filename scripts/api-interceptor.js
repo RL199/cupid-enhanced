@@ -2,8 +2,6 @@
 (function () {
     'use strict';
 
-    console.log('###Cupid Enhanced: API Interceptor Loaded###');
-
     let settings = {
         staffMode: true,
         anonymousMessageRead: true
@@ -132,7 +130,7 @@
         }
     }
 
-    function extractLikesImageUrl(item) {
+    function extractInterestedImageUrl(item) {
         if (!item || typeof item !== 'object') return null;
 
         if (item.user?.primaryImage?.square225) return item.user.primaryImage.square225;
@@ -146,7 +144,7 @@
         return null;
     }
 
-    function collectLikesProfileMappings(data) {
+    function collectInterestedProfileMappings(data) {
         const likes = data?.data?.me?.likes;
         if (!likes?.data || !Array.isArray(likes.data) || likes.data.length === 0) return;
 
@@ -156,7 +154,7 @@
 
         if (decodedAfter) {
             const lastItem = likes.data[likes.data.length - 1];
-            const lastImage = normalizeImageUrl(extractLikesImageUrl(lastItem));
+            const lastImage = normalizeImageUrl(extractInterestedImageUrl(lastItem));
             if (lastImage) {
                 entries.push({ profileId: decodedAfter, imageUrl: lastImage, cursor: afterCursor });
             }
@@ -165,7 +163,7 @@
         if (lastLikesRequestCursor) {
             const decodedRequest = safeBase64Decode(lastLikesRequestCursor);
             const firstItem = likes.data[0];
-            const firstImage = normalizeImageUrl(extractLikesImageUrl(firstItem));
+            const firstImage = normalizeImageUrl(extractInterestedImageUrl(firstItem));
             if (decodedRequest && firstImage) {
                 entries.push({ profileId: decodedRequest, imageUrl: firstImage, cursor: lastLikesRequestCursor });
             }
@@ -173,15 +171,15 @@
 
         likes.data.forEach(item => {
             const userId = item?.user?.id;
-            const imageUrl = normalizeImageUrl(extractLikesImageUrl(item));
+            const imageUrl = normalizeImageUrl(extractInterestedImageUrl(item));
             if (userId && imageUrl) {
                 entries.push({ profileId: userId, imageUrl });
             }
         });
 
-        if (entries.length > 0) {
+        if (entries.length > 0 && (window.location.href.startsWith('https://www.okcupid.com/who-likes-you') || window.location.href.startsWith('https://okcupid.com/who-likes-you'))) {
             window.postMessage({
-                type: 'LIKES_PROFILE_CURSOR_MAP',
+                type: 'INTERESTED_PROFILE_CURSOR_MAP',
                 operation: lastLikesRequestOperation,
                 entries
             }, '*');
@@ -228,7 +226,7 @@
         if (session) {
             session.isStaff = settings.staffMode;
             session.isInEU = false; // not sure if this does anything
-            // session.guestId = '2DZnGaELZWAH2Pxi8yCKrA2'; //TODO: research about guestId usage
+            // session.guestId = ''; //TODO: research about guestId usage
             session.__typename = 'Session';
 
             // Inject Session Gatekeeper Checks
@@ -330,6 +328,7 @@
         me.premiums.INTROS = true; // Access to Intros
         me.premiums.INCOGNITO_BUNDLE = true; // Incognito mode
         me.premiums.UNLIMITED_REWINDS = true; // Unlimited rewinds
+        me.premiums.UNLIMITED_LIKES = true; // Unlimited likes
         me.premiums.READ_RECEIPTS = true; // Read receipts for messages
         me.premiums.SEE_PUBLIC_QUESTIONS = true; // See public question answers
         me.premiums.__typename = 'Premiums';
@@ -341,6 +340,39 @@
         });
 
         return true;
+    };
+
+    const handleStacksLikedBy = (data) => {
+        const stacks = data?.data?.me?.stacks;
+        if (!Array.isArray(stacks)) return;
+
+        // Collect user IDs where targetLikesSender is true
+        const likedByIds = [];
+        for (const stack of stacks) {
+            if (!Array.isArray(stack.data)) continue;
+            for (const item of stack.data) {
+                if (item?.targetLikesSender === true && item?.match?.user?.id) {
+                    likedByIds.push(item.match.user.id);
+                }
+            }
+        }
+
+        if (likedByIds.length === 0) return;
+
+        // Merge with existing stored IDs
+        let existing = [];
+        try {
+            existing = JSON.parse(localStorage.getItem('cupid_liked_by_user_ids') || '[]');
+        } catch { /* empty */ }
+
+        const merged = [...new Set([...existing, ...likedByIds])];
+        localStorage.setItem('cupid_liked_by_user_ids', JSON.stringify(merged));
+
+        // Notify content script
+        window.postMessage({
+            type: 'TARGET_LIKES_SENDER',
+            userIds: likedByIds
+        }, '*');
     };
 
     const handleUnblur = (data) => {
@@ -358,6 +390,41 @@
         traverse(data);
         return modified;
     };
+
+    // =============================================================================
+    // Navbar Likes Count - JS Bundle Interception
+    // Patches the navbar-likes-count component to read from localStorage
+    // instead of relying on content script polling
+    // =============================================================================
+
+    let navbarLikesBundlePatched = false;
+
+    /**
+     * Patch the navbar likes count component in a JS bundle to read
+     * the count from the OkCupid site's 'previous_likes_count' localStorage key.
+     * Targets the destructuring pattern: {count:VAR, className:VAR} = VAR;
+     * and injects a localStorage override right after it.
+     */
+    function handleNavbarLikesBundle(text) {
+        let patched = text;
+
+        // The component destructures: {count:VAR, className:VAR} = VAR;
+        // Inject a localStorage override for the count variable after the destructuring
+        patched = patched.replace(
+            /(\{count:(\w+),className:(\w+)\}\s*=\s*\w+;)/,
+            (match, full, countVar) => {
+                const override = `var _lc=parseInt(localStorage.getItem("previous_likes_count"),10);if(_lc>0){${countVar}=_lc;}`;
+                return full + override;
+            }
+        );
+
+        if (patched !== text) {
+            navbarLikesBundlePatched = true;
+            console.log('[Cupid Enhanced] Patched navbar likes count bundle to use localStorage');
+        }
+
+        return patched;
+    }
 
     // --- Response Interceptor ---
 
@@ -465,6 +532,11 @@
         const text = await originalText.call(this);
         const { url } = this;
 
+        // Intercept JS bundles containing the navbar likes count component
+        if (!navbarLikesBundlePatched && !url.includes('graphql') && text.includes('navbar-likes-count')) {
+            return handleNavbarLikesBundle(text);
+        }
+
         if (!url.includes('graphql')) return text;
 
         try {
@@ -473,10 +545,11 @@
 
             // Run handlers
             handleLikes(data);
+            handleStacksLikedBy(data);
             if (handlePremium(data)) modified = true;
             if (handleUnblur(data)) modified = true;
 
-            collectLikesProfileMappings(data);
+            collectInterestedProfileMappings(data);
 
             if (modified) {
                 return JSON.stringify(data);
@@ -488,6 +561,63 @@
             return text;
         }
     };
+
+    // =============================================================================
+    // Navbar Likes Count - DOM Update via localStorage Interception
+    // Handles initial render + reactive updates without polling
+    // =============================================================================
+
+    /**
+     * Update the navbar likes count element and replace "Interest" with "Likes"
+     */
+    function updateNavbarLikesDOM(count) {
+        if (!count || count <= 0) return;
+        const likesElement = document.querySelector('.count');
+        if (likesElement && likesElement.textContent !== String(count)) {
+            likesElement.textContent = count;
+        }
+        // Replace "Interest" with "Likes" in navbar link text
+        document.querySelectorAll('.navbar-link-text').forEach(el => {
+            if (el.textContent.includes('Interest')) {
+                el.textContent = 'Likes';
+            }
+        });
+    }
+
+    // Override localStorage.setItem to detect when OkCupid updates previous_likes_count
+    const originalSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function (key, value) {
+        originalSetItem(key, value);
+        if (key === 'previous_likes_count') {
+            updateNavbarLikesDOM(parseInt(value, 10));
+        }
+    };
+
+    // One-time MutationObserver: waits for the navbar to render, applies initial count
+    // and "Interest" → "Likes" replacement, then disconnects
+    (function setupNavbarLikesObserver() {
+        const applyInitial = () => {
+            const count = parseInt(localStorage.getItem('previous_likes_count') || '0', 10);
+            updateNavbarLikesDOM(count);
+        };
+
+        const observer = new MutationObserver(() => {
+            if (document.querySelector('.count')) {
+                applyInitial();
+                observer.disconnect();
+            }
+        });
+
+        if (document.body) {
+            applyInitial();
+            observer.observe(document.body, { childList: true, subtree: true });
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                applyInitial();
+                observer.observe(document.body, { childList: true, subtree: true });
+            });
+        }
+    })();
 
     // =============================================================================
     // Console API - Expose functions to window for use in browser console

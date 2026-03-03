@@ -56,3 +56,37 @@ var PHOTO_DATE_LABEL_STYLES = `
     white-space: nowrap;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 `;
+
+var LIKED_BY_INDICATOR_STYLES = `
+    .cupid-liked-by-active {
+        font-weight: 600;
+    }
+`;
+
+var TRANSLATE_BUTTON_STYLES = `
+    .dt-section-title:has(.cupid-translate-btn) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .cupid-translate-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        padding: 4px 10px;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        border: 1px solid #444;
+        border-radius: 16px;
+        font-size: 14px;
+        font-weight: normal;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s;
+        flex-shrink: 0;
+    }
+    .cupid-translate-btn:hover {
+        background: #2a2a4e;
+        border-color: #888;
+    }
+`;

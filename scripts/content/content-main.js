@@ -5,8 +5,6 @@
 // =============================================================================
 'use strict';
 
-console.log('###Cupid content script loaded###');
-
 // =============================================================================
 // Console Logo Display
 // =============================================================================
@@ -32,9 +30,9 @@ function displayConsoleLogo() {
 async function init() {
     displayConsoleLogo();
     await loadSettings();
+    loadLikedByUserIds();
     setupEventListeners();
     setupObservers();
-    updateLikesIncomingCount();
 
     if (currentSettings.darkMode) {
         enableDarkMode();
@@ -83,7 +81,6 @@ function setupEventListeners() {
     setupKeyboardShortcuts();
     listenForLikesData();
     listenForSettingsUpdates();
-    startLikesCountPolling();
     setupPassButtonListener();
 }
 

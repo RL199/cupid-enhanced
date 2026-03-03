@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0]
+
+### Added
+- Indicator in feed if the profile liked you or not. 
+- Translate button for profile essays in feed to translate them using Google Translate.
+
+### Changed
+- "Interested in You" centered grid layout.
+- The horizontal scroll feature is now always enabled without any toggle.
+
+### Fixed
+- Interested profiles fetch button fetching wrong profiles.
+- Incoming Likes header loading slowly.
+
 ## [1.3.0]
 
 ### Added
@@ -15,7 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - likes remaining count not updating correctly.
-
 
 
 ## [1.2.0]

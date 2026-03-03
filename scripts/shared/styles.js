@@ -220,7 +220,7 @@ var LIKES_YOU_STYLES = `
     .incoming-likes-voting-list > div > div,
     .jBtTsboeLJtQL55nQsEi > div {
         display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 197px)) !important;
         height: auto !important;
         position: relative !important;
         gap: 10px !important;
@@ -269,7 +269,7 @@ var LIKES_YOU_STYLES = `
         fill: #ffffff;
     }
 
-    .cupid-fetch-likes-wrapper {
+    .cupid-fetch-interested-wrapper {
         position: fixed;
         bottom: 12px;
         right: 20px;
@@ -280,7 +280,7 @@ var LIKES_YOU_STYLES = `
         z-index: 1000000;
     }
 
-    .cupid-fetch-likes-ids {
+    .cupid-fetch-interested-ids {
         background: #ff1493;
         color: #ffffff;
         border: none;
@@ -296,27 +296,27 @@ var LIKES_YOU_STYLES = `
         gap: 8px;
     }
 
-    .cupid-fetch-likes-ids:hover {
+    .cupid-fetch-interested-ids:hover {
         background: #e01280;
         transform: scale(1.03);
     }
 
-    .cupid-fetch-likes-ids.cupid-fetch-active {
+    .cupid-fetch-interested-ids.cupid-fetch-active {
         background: #dc3545;
     }
 
-    .cupid-fetch-likes-ids.cupid-fetch-active:hover {
+    .cupid-fetch-interested-ids.cupid-fetch-active:hover {
         background: #c82333;
     }
 
-    .cupid-fetch-likes-ids:disabled {
+    .cupid-fetch-interested-ids:disabled {
         opacity: 0.7;
         cursor: not-allowed;
         transform: none;
     }
 
     .cupid-fetch-spinner {
-        width: 16px;cupid-fetch-likes-wrapper
+        width: 16px;
         height: 16px;
         border: 2px solid rgba(255, 255, 255, 0.3);
         border-top-color: #ffffff;
@@ -328,7 +328,7 @@ var LIKES_YOU_STYLES = `
         to { transform: rotate(360deg); }
     }
 
-    .cupid-fetch-likes-status {
+    .cupid-fetch-interested-status {
         background: rgba(0, 0, 0, 0.8);
         color: #ffffff;
         font-size: 13px;
@@ -338,7 +338,7 @@ var LIKES_YOU_STYLES = `
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
-    .cupid-fetch-likes-status:empty {
+    .cupid-fetch-interested-status:empty {
         display: none;
     }
 `;

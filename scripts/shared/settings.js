@@ -15,10 +15,10 @@ var DEFAULT_SETTINGS = {
     staffMode: false,
     enhanceDiscoverPage: true,
     enhanceLikesYouPage: false,
-    horizontalScroll: true,
     darkMode: false,
     anonymousMessageRead: false,
-    photoUploadButton: false
+    photoUploadButton: false,
+    translateLanguage: 'en'
 };
 
 var STORAGE_KEYS = {
@@ -26,5 +26,6 @@ var STORAGE_KEYS = {
     likesResetTime: 'likes_reset_time',
     likesCount: 'previous_likes_count',
     visitedProfiles: 'visited_profiles',
-    likesProfileMap: 'likes_profile_map'
+    interestedProfileMap: 'interested_profile_map',
+    likedByUserIds: 'cupid_liked_by_user_ids'
 };

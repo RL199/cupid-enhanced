@@ -30,7 +30,7 @@ async function saveSettings(settings) {
                     // Tab might not have content script yet, ignore error
                 });
         }
-    } catch (error) {
+    } catch {
         // Ignore errors when querying tabs
     }
 }
@@ -49,6 +49,14 @@ function updateUI() {
         const key = checkbox.dataset.key;
         checkbox.checked = currentSettings[key];
     });
+
+    const selects = document.querySelectorAll('select[data-key]');
+    selects.forEach(select => {
+        const key = select.dataset.key;
+        if (currentSettings[key] !== undefined) {
+            select.value = currentSettings[key];
+        }
+    });
 }
 
 // Setup event listeners
@@ -61,8 +69,8 @@ function setupEventListeners() {
         });
     });
 
-    // Make entire setting items clickable
-    const settingItems = document.querySelectorAll('.setting-item');
+    // Make entire setting items clickable (except select-based items)
+    const settingItems = document.querySelectorAll('.setting-item:not(.setting-item-select)');
     settingItems.forEach(item => {
         item.addEventListener('click', e => {
             // Don't double-toggle if clicking directly on the toggle switch
@@ -70,6 +78,16 @@ function setupEventListeners() {
                 const key = item.dataset.setting;
                 handleToggle(key);
             }
+        });
+    });
+
+    // Add listeners to select dropdowns
+    const selects = document.querySelectorAll('select[data-key]');
+    selects.forEach(select => {
+        select.addEventListener('change', async () => {
+            const newSettings = { ...currentSettings, [select.dataset.key]: select.value };
+            await saveSettings(newSettings);
+            updateUI();
         });
     });
 
