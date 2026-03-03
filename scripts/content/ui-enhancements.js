@@ -761,6 +761,7 @@ function applySettings() {
 function setupObservers() {
     // Inject liked-by indicator styles (always active)
     injectStyles('cupid-liked-by-styles', LIKED_BY_INDICATOR_STYLES);
+    injectStyles('cupid-translate-btn-styles', TRANSLATE_BUTTON_STYLES);
 
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
@@ -811,6 +812,36 @@ function createBodyObserver(callback) {
 // Discover Page Enhancement
 // =============================================================================
 
+function addTranslateButtons() {
+    const sections = document.querySelectorAll('.dt-section');
+    sections.forEach(section => {
+        const essay = section.querySelector('.dt-essay');
+        if (!essay) return;
+
+        const title = section.querySelector('.dt-section-title');
+        if (!title || title.querySelector('.cupid-translate-btn')) return;
+
+        const essayText = essay.querySelector('.dt-essay-text');
+        if (!essayText) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'cupid-translate-btn';
+        btn.type = 'button';
+        btn.title = 'Translate with Google Translate';
+        btn.textContent = '🌐 Translate';
+        btn.addEventListener('click', event => {
+            event.stopPropagation();
+            const text = essayText.textContent.trim();
+            if (!text) return;
+            const lang = currentSettings.translateLanguage || 'en';
+            const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${encodeURIComponent(text)}&op=translate`;
+            window.open(url, '_blank');
+        });
+
+        title.appendChild(btn);
+    });
+}
+
 function enhanceDiscoverPage() {
     let debounceTimer = null;
 
@@ -819,6 +850,7 @@ function enhanceDiscoverPage() {
 
         applyStylesToElements(DISCOVER_PAGE_ENHANCEMENTS);
         displayPhotoDatesOnImages();
+        addTranslateButtons();
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(addCupidEnhancedSection, 300);

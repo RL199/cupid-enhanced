@@ -189,6 +189,35 @@ body {
     position: absolute;
 }
 
+.setting-select {
+    padding: 6px 10px;
+    background: rgba(var(--primary-purple-rgb), 0.3);
+    border: 1px solid rgba(var(--primary-pink-rgb), 0.3);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.setting-select:hover {
+    border-color: var(--primary-pink);
+    background: rgba(var(--primary-purple-rgb), 0.5);
+}
+
+.setting-select:focus {
+    border-color: var(--primary-pink);
+    box-shadow: 0 0 8px rgba(var(--secondary-pink-rgb), 0.3);
+}
+
+.setting-select option {
+    background: var(--bg-gradient-start);
+    color: var(--text-primary);
+}
+
 .toggle-slider {
     position: absolute;
     cursor: pointer;

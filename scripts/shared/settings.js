@@ -18,7 +18,8 @@ var DEFAULT_SETTINGS = {
     horizontalScroll: true,
     darkMode: false,
     anonymousMessageRead: false,
-    photoUploadButton: false
+    photoUploadButton: false,
+    translateLanguage: 'en'
 };
 
 var STORAGE_KEYS = {
