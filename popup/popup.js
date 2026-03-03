@@ -30,7 +30,7 @@ async function saveSettings(settings) {
                     // Tab might not have content script yet, ignore error
                 });
         }
-    } catch (error) {
+    } catch {
         // Ignore errors when querying tabs
     }
 }

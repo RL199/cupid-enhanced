@@ -4,9 +4,10 @@
 // Requires: api-helpers.js, settings.js, selectors.js
 // =============================================================================
 'use strict';
+/* exported initPhotoUpload */
 
 // Current user ID (will be populated from API responses)
-var currentUserId = null;
+let currentUserId = null;
 
 /**
  * Upload a photo to OkCupid using a multi-step process:
