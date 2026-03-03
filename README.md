@@ -71,7 +71,9 @@ Cupid Enhanced is a Chrome extension that enhances the OkCupid experience by unl
 ### 🎨 Layout & Navigation
 - **📐 Better Discover Layout** - Expanded page width with centered layout, photo dates, and likes remaining counter (toggleable)
 - **💕 Better Likes You Layout** - Improved grid layout for the likes you page (toggleable)
-- **🖱️ Horizontal Scroll** - Use mouse wheel to navigate through profiles on discover page and photos in fullscreen viewer (toggleable)
+- **🖱️ Horizontal Scroll** - Use mouse wheel to navigate through profiles on discover page and photos in fullscreen viewer
+- **💘 Like Indicator** - See in the feed whether a profile has liked you or not
+- **🌐 Translate Essays** - Translate profile essays in the feed using Google Translate
 - **❤️ Cupid's Picks Buttons** - Add like and pass buttons to Cupid's Picks profiles for easier navigation
 - **👥 Fetch All Interested Profiles** - View all interested profiles including likes you
 - **🚫 Hide Promotions** - Clean interface without premium upgrade ads
@@ -110,7 +112,6 @@ After installation, click the extension icon in your Chrome toolbar to open the 
 - **Staff Mode** - Shows staff panel on the left sidebar. Useful for accessing features like the "Question Search" section.
 - **Better Discover Layout** - Expands page width and adds additional profile information
 - **Better Likes You Layout** - Displays likes you layout in a grid with more profiles
-- **Horizontal Mouse Scroll to Browse** - Navigate profile photos using horizontal mouse scroll
 - **Anonymous Message Read** - Blocks read receipts so messages stay unseen
 - **Photo Upload Button** - Shows a button to upload high resolution photos
 - **Dark Mode (Experimental)** - Applies dark theme styling across all pages
@@ -167,8 +168,7 @@ The extension features a beautiful dark-themed popup with gradient colors matchi
 - **🤖 AI Intro Message Generator** - Generate personalized intro messages using AI
 - **🌑 Enhanced Dark Mode** - Full dark mode support across all OkCupid pages
 - **⌨️ Additional Keyboard Shortcuts** - More navigation and action shortcuts
-- **💬 Feed Text Translation** - Translate feed text into multiple languages
-- **🛒 Chrome Web Store Publishing** - Make the extension available for easy installation via the Chrome Web Store
+- **🛒Chrome Web Store Publishing** - Make the extension available for easy installation via the Chrome Web Store
 - **🦊 Cross-Browser Compatibility** - Extend support to Firefox and other browsers
 - **📊 Analytics Dashboard** - Provide insights into your dating activity and extension usage
 - **⚡ Auto pass/like for Custom Filters** - Automatically pass or like profiles based on user-defined criteria

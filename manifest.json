@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Cupid Enhanced",
-    "version": "1.3.1",
+    "version": "1.4.0",
     "description": "Enhances the OkCupid platform for better usability and features.",
     "icons": {
         "16": "assets/icons/icon-16.png",
