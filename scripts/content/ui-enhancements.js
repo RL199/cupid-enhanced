@@ -104,7 +104,9 @@ function loadLikedByUserIds() {
         if (Array.isArray(stored)) {
             stored.forEach(id => likedByUserIds.add(id));
         }
-    } catch { /* empty */ }
+    } catch {
+        /* empty */
+    }
 }
 
 /**
@@ -458,9 +460,10 @@ async function pruneStaleProfiles(statusEl) {
 
     if (statusEl) {
         const removed = keysToRemove.length;
-        statusEl.textContent = removed > 0
-            ? `Pruned ${removed} stale URL(s) • ${getInterestedProfileIdCount()} IDs remain`
-            : `Validated ${allImageUrls.size} URLs • ${getInterestedProfileIdCount()} IDs`;
+        statusEl.textContent =
+            removed > 0
+                ? `Pruned ${removed} stale URL(s) • ${getInterestedProfileIdCount()} IDs remain`
+                : `Validated ${allImageUrls.size} URLs • ${getInterestedProfileIdCount()} IDs`;
     }
 
     return keysToRemove.length;
@@ -621,8 +624,6 @@ async function handleInterestedFetchButtonClick(button) {
 
 function setupHorizontalScroll() {
     const scrollHandler = event => {
-        if (!currentSettings.horizontalScroll) return;
-
         // Check if we're in the fullscreen photo modal
         const fullscreenModal = document.querySelector('#OkModal .photo-overlay-images');
         if (fullscreenModal) {
@@ -780,9 +781,7 @@ function setupObservers() {
     observers.premiumAds = blockPremiumAds();
     observers.doubleTakeButtons = setupDoubleTakeButtonsObserver();
 
-    if (currentSettings.horizontalScroll) {
-        setupHorizontalScroll();
-    }
+    setupHorizontalScroll();
 
     observers.fullscreenPhotos = setupFullscreenPhotoObserver();
 }
@@ -806,7 +805,6 @@ function createBodyObserver(callback) {
     observer.observe(document.body, { childList: true, subtree: true });
     return observer;
 }
-
 
 // =============================================================================
 // Discover Page Enhancement

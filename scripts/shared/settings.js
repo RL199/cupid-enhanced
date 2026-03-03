@@ -15,7 +15,6 @@ var DEFAULT_SETTINGS = {
     staffMode: false,
     enhanceDiscoverPage: true,
     enhanceLikesYouPage: false,
-    horizontalScroll: true,
     darkMode: false,
     anonymousMessageRead: false,
     photoUploadButton: false,
