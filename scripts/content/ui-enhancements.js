@@ -18,6 +18,7 @@ var interestedProfileMap = {};
 var interestedProfileMapLoaded = false;
 var interestedTotalFromResponse = null;
 var interestedFetchAborted = false;
+var likedByUserIds = new Set();
 
 // =============================================================================
 // Style Injection Helpers
@@ -76,12 +77,48 @@ function listenForLikesData() {
         if (type === 'INTERESTED_PROFILE_CURSOR_MAP' && Array.isArray(entries) && entries.length > 0) {
             updateInterestedProfileMap(entries);
         }
+
+        // Capture profiles that liked the user from stacks data
+        if (type === 'TARGET_LIKES_SENDER' && Array.isArray(event.data.userIds)) {
+            event.data.userIds.forEach(id => likedByUserIds.add(id));
+            updateLikedByIndicator();
+        }
     });
 }
 
 function updateElementText(id, text) {
     const element = document.getElementById(id);
     if (element) element.textContent = text;
+}
+
+// =============================================================================
+// Liked-By Indicator
+// =============================================================================
+
+/**
+ * Load liked-by user IDs from localStorage (set by api-interceptor in main world)
+ */
+function loadLikedByUserIds() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.likedByUserIds) || '[]');
+        if (Array.isArray(stored)) {
+            stored.forEach(id => likedByUserIds.add(id));
+        }
+    } catch { /* empty */ }
+}
+
+/**
+ * Update the liked-by indicator in the Cupid Enhanced section for the current profile
+ */
+function updateLikedByIndicator() {
+    const indicator = document.getElementById('liked-by-status');
+    if (!indicator) return;
+
+    const currentProfileId = getCurrentUserIdFromDOM();
+    const isLikedBy = currentProfileId && likedByUserIds.has(currentProfileId);
+
+    indicator.className = `matchprofile-details-text cupid-liked-by-indicator ${isLikedBy ? 'cupid-liked-by-active' : 'cupid-liked-by-inactive'}`;
+    indicator.textContent = isLikedBy ? '\ud83d\udc97 This person likes you!' : '\ud83d\udc94 No like detected';
 }
 
 // =============================================================================
@@ -722,6 +759,9 @@ function applySettings() {
 // =============================================================================
 
 function setupObservers() {
+    // Inject liked-by indicator styles (always active)
+    injectStyles('cupid-liked-by-styles', LIKED_BY_INDICATOR_STYLES);
+
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
         { key: 'likesYouPage', setting: 'enhanceLikesYouPage', fn: enhanceLikesYouPage }
@@ -1165,6 +1205,7 @@ function addCupidEnhancedSection() {
     const needsFetch = currentUserId && currentUserId !== lastFetchedUserId;
 
     if (document.querySelector(SELECTORS.cupidSection)) {
+        updateLikedByIndicator();
         if (needsFetch && !isFetchingMetadata) fetchAllImageMetadata();
         return;
     }
@@ -1192,7 +1233,15 @@ function createCupidSection() {
 
     const content = document.createElement('div');
     content.className = 'dt-section-content';
+
+    // Check if current profile liked the user
+    const currentProfileId = getCurrentUserIdFromDOM();
+    const isLikedBy = currentProfileId && likedByUserIds.has(currentProfileId);
+
     content.innerHTML = `
+        <div class="matchprofile-details-text cupid-liked-by-indicator ${isLikedBy ? 'cupid-liked-by-active' : 'cupid-liked-by-inactive'}" id="liked-by-status">
+            ${isLikedBy ? '💗 This person likes you!' : '💔 No like detected'}
+        </div>
         <div class="matchprofile-details-text" id="newest-photo-date">Newest Photo Upload: Loading...</div>
         <div class="matchprofile-details-text" id="oldest-photo-date">Oldest Photo Upload: Loading...</div>
         <div class="matchprofile-details-text" id="likes-remaining">Likes Remaining: ${likesRemaining} (max 500)</div>

@@ -56,3 +56,9 @@ var PHOTO_DATE_LABEL_STYLES = `
     white-space: nowrap;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 `;
+
+var LIKED_BY_INDICATOR_STYLES = `
+    .cupid-liked-by-active {
+        font-weight: 600;
+    }
+`;

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.1]
 
+### Added
+- Indicator in feed id the profile liked you or not.
+
 ### Fixed
 - Interested profiles fetch button fetching wrong profiles.
 - Incoming Likes header loading slowly.

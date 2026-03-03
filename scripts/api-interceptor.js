@@ -342,6 +342,39 @@
         return true;
     };
 
+    const handleStacksLikedBy = (data) => {
+        const stacks = data?.data?.me?.stacks;
+        if (!Array.isArray(stacks)) return;
+
+        // Collect user IDs where targetLikesSender is true
+        const likedByIds = [];
+        for (const stack of stacks) {
+            if (!Array.isArray(stack.data)) continue;
+            for (const item of stack.data) {
+                if (item?.targetLikesSender === true && item?.match?.user?.id) {
+                    likedByIds.push(item.match.user.id);
+                }
+            }
+        }
+
+        if (likedByIds.length === 0) return;
+
+        // Merge with existing stored IDs
+        let existing = [];
+        try {
+            existing = JSON.parse(localStorage.getItem('cupid_liked_by_user_ids') || '[]');
+        } catch { /* empty */ }
+
+        const merged = [...new Set([...existing, ...likedByIds])];
+        localStorage.setItem('cupid_liked_by_user_ids', JSON.stringify(merged));
+
+        // Notify content script
+        window.postMessage({
+            type: 'TARGET_LIKES_SENDER',
+            userIds: likedByIds
+        }, '*');
+    };
+
     const handleUnblur = (data) => {
         let modified = false;
         const traverse = (obj) => {
@@ -512,6 +545,7 @@
 
             // Run handlers
             handleLikes(data);
+            handleStacksLikedBy(data);
             if (handlePremium(data)) modified = true;
             if (handleUnblur(data)) modified = true;
 

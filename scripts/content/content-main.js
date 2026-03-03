@@ -30,6 +30,7 @@ function displayConsoleLogo() {
 async function init() {
     displayConsoleLogo();
     await loadSettings();
+    loadLikedByUserIds();
     setupEventListeners();
     setupObservers();
 
