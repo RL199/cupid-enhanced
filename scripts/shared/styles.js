@@ -220,7 +220,7 @@ var LIKES_YOU_STYLES = `
     .incoming-likes-voting-list > div > div,
     .jBtTsboeLJtQL55nQsEi > div {
         display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 197px)) !important;
         height: auto !important;
         position: relative !important;
         gap: 10px !important;

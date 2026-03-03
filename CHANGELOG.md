@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Indicator in feed id the profile liked you or not.
 
+### Changed
+- "Interested in You" centered grid layout.
+
 ### Fixed
 - Interested profiles fetch button fetching wrong profiles.
 - Incoming Likes header loading slowly.
