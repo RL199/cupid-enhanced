@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0]
 
 ### Added
-- Indicator in feed if the profile liked you or not.
+- Indicator in feed if the profile liked you or not. 
 - Translate button for profile essays in feed to translate them using Google Translate.
 
 ### Changed
