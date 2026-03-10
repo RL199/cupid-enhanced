@@ -94,55 +94,67 @@ async function uploadPhotoToOkCupid(file, options = {}) {
     const extension = formatToExt[outputFormat] || 'jpg';
     const mimeType = outputFormat;
 
-    // Step 2: Get upload URL from OkCupid
-    console.log('[Cupid Enhanced] Requesting upload URL...');
-    const uploadUrlResponse = await okcupidRequest('/photo/uploadurl', {
-        method: 'POST',
-        body: {
-            filesize: processedBlob.size,
-            extension: extension
-        }
+    // Step 2: Get image dimensions from the processed blob
+    const { width: imgWidth, height: imgHeight } = await new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(processedBlob);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve({ width: img.width, height: img.height });
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Failed to read processed image dimensions'));
+        };
+        img.src = url;
     });
 
-    if (!uploadUrlResponse || !uploadUrlResponse.upload_url) {
-        throw new Error('Failed to get upload URL from OkCupid');
-    }
-
-    console.log('[Cupid Enhanced] Got upload URL, uploading to S3...');
-
-    // Step 3: Upload to S3
-    const s3Response = await fetch(uploadUrlResponse.upload_url, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': mimeType
-        },
-        body: processedBlob
+    // Step 3: Convert blob to base64 for sending via message
+    const imageBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            // Remove the data:mime;base64, prefix
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read image as base64'));
+        reader.readAsDataURL(processedBlob);
     });
 
-    if (!s3Response.ok) {
-        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
-    }
-
-    console.log('[Cupid Enhanced] S3 upload complete, confirming with OkCupid...');
-
-    // Step 4: Confirm the photo with OkCupid
-    // Get current user ID if we don't have it
+    // Step 4: Get current user ID
     if (!currentUserId) {
         currentUserId = await getCurrentUserId();
     }
 
-    const confirmResponse = await okcupidRequest('/photo/confirm', {
-        method: 'POST',
-        body: {
-            key: uploadUrlResponse.key,
-            userid: currentUserId,
-            caption: '',
-            is_private: false
-        }
+    // Step 5: Upload via background script (multipart upload to /image)
+    console.log('[Cupid Enhanced] Uploading photo via background script...');
+    const result = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+            {
+                type: 'UPLOAD_PHOTO',
+                photoData: {
+                    imageBase64,
+                    mimeType,
+                    filename: file.name || `photo.${extension}`,
+                    userId: currentUserId,
+                    width: imgWidth,
+                    height: imgHeight
+                }
+            },
+            response => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else if (response?.success) {
+                    resolve(response.data);
+                } else {
+                    reject(new Error(response?.error || 'Upload failed'));
+                }
+            }
+        );
     });
 
-    console.log('[Cupid Enhanced] Photo upload complete:', confirmResponse);
-    return confirmResponse;
+    console.log('[Cupid Enhanced] Photo upload complete:', result);
+    return result;
 }
 
 /**
