@@ -265,8 +265,6 @@ function isCloudflareChallenge() {
     );
 }
 
-var AUTO_SIGNUP_SESSION_KEY = 'cupid_auto_signup_state';
-
 /**
  * Initialize the auto-signup feature if on the signup page.
  */
@@ -288,17 +286,12 @@ function initAutoSignup() {
 }
 
 function runAutoSignup() {
-    const state = sessionStorage.getItem(AUTO_SIGNUP_SESSION_KEY);
-
     if (window.location.pathname.startsWith('/signup')) {
-        if (state === 'signup_done' || state === 'liked' || state === 'logged_out') return;
-
         // Wait for the actual onboarding form before activating
         const activate = async () => {
             try {
                 await waitForElement('[data-cy="onboarding.stepContainer"]', 30000);
                 console.log('[Cupid Enhanced] Signup: Auto-signup activated');
-                sessionStorage.setItem(AUTO_SIGNUP_SESSION_KEY, 'in_progress');
                 observeSignupSteps();
             } catch (_e) {
                 console.log('[Cupid Enhanced] Signup: No onboarding form found, skipping');
@@ -308,36 +301,61 @@ function runAutoSignup() {
         return;
     }
 
-    // Post-signup: redirect from onboarding complete to target profile
+    // Post-signup: send superlike via API then logout
     if (
         window.location.pathname === '/discover' &&
         new URLSearchParams(window.location.search).has('onboarding_complete')
     ) {
-        if (state === 'liked' || state === 'logged_out') return;
-        console.log('[Cupid Enhanced] Signup: Onboarding complete, navigating to target profile...');
-        sessionStorage.setItem(AUTO_SIGNUP_SESSION_KEY, 'signup_done');
-        window.location.href = 'https://www.okcupid.com/profile/2DZnGaELZWAH2Pxi8yCKrA2';
-        return;
-    }
+        console.log('[Cupid Enhanced] Signup: Onboarding complete, will send superlike after headers are captured...');
 
-    // Post-signup: like target profile then logout
-    if (window.location.pathname === '/profile/2DZnGaELZWAH2Pxi8yCKrA2') {
-        if (state !== 'signup_done') return;
-        console.log('[Cupid Enhanced] Signup: On target profile, will click like');
-        const run = async () => {
-            try {
-                const likeButton = await waitForElement('button[data-cy="profile.likeButton"]', 15000);
-                await new Promise(r => setTimeout(r, 1500));
-                likeButton.click();
-                console.log('[Cupid Enhanced] Signup: Liked profile, logging out...');
-                sessionStorage.setItem(AUTO_SIGNUP_SESSION_KEY, 'liked');
-                await new Promise(r => setTimeout(r, 2000));
-                window.location.href = 'https://www.okcupid.com/logout';
-            } catch (err) {
-                console.error('[Cupid Enhanced] Signup: Error liking profile:', err);
+        const sendSuperlike = async () => {
+            await new Promise(r => setTimeout(r, 5000));
+
+            const maxRetries = 3;
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`[Cupid Enhanced] Signup: Superlike attempt ${attempt}/${maxRetries}`);
+                    const result = await okcupidGraphQL(
+                        'WebUserSuperlike',
+                        `mutation WebUserSuperlike($input: UserSuperlikeInput!) {
+  userSuperlike(input: $input) {
+    success
+    statusCode
+    isMutualLike
+    __typename
+  }
+}`,
+                        {
+                            input: {
+                                targetId: '2DZnGaELZWAH2Pxi8yCKrA2',
+                                voteSource: 'DOUBLETAKE',
+                                message: 'hfggfffd',
+                                userMetadata: null
+                            }
+                        }
+                    );
+                    console.log('[Cupid Enhanced] Signup: Superlike result:', result);
+
+                    if (result?.data?.userSuperlike?.success) {
+                        console.log('[Cupid Enhanced] Signup: Superlike succeeded!');
+                        await new Promise(r => setTimeout(r, 2000));
+                        window.location.href = 'https://www.okcupid.com/logout';
+                        return;
+                    }
+
+                    console.warn('[Cupid Enhanced] Signup: Superlike returned error, retrying...');
+                    await new Promise(r => setTimeout(r, 3000));
+                } catch (err) {
+                    console.error(`[Cupid Enhanced] Signup: Attempt ${attempt} failed:`, err);
+                    if (attempt < maxRetries) {
+                        await new Promise(r => setTimeout(r, 3000));
+                    }
+                }
             }
+            console.error('[Cupid Enhanced] Signup: All superlike attempts failed');
         };
-        run();
+        sendSuperlike();
+        return;
     }
 }
 
