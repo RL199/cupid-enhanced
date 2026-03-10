@@ -198,6 +198,14 @@ query WebLikesCap {
         return true; // Keep channel open for async response
     }
 
+    // Handle temp email fetch for auto-signup
+    if (message.type === 'FETCH_TEMP_EMAIL') {
+        fetchTempEmail()
+            .then(result => sendResponse(result))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
+
     return false;
 });
 
@@ -273,10 +281,10 @@ async function uploadPhoto(photoData) {
 
     // Use all captured headers plus required ones for upload
     const headers = {
-        'accept': '*/*',
+        accept: '*/*',
         'content-type': `multipart/form-data; boundary=${boundary}`,
-        'Origin': 'https://www.okcupid.com',
-        'Referer': 'https://www.okcupid.com/'
+        Origin: 'https://www.okcupid.com',
+        Referer: 'https://www.okcupid.com/'
     };
 
     // Add all captured OkCupid headers (authorization, device-id, version, etc.)
@@ -316,3 +324,34 @@ async function uploadPhoto(photoData) {
 
 // Log when service worker starts
 console.log('[Cupid Enhanced] Background service worker started');
+
+// =============================================================================
+// Temp Email Fetcher (for auto-signup)
+// =============================================================================
+
+async function fetchTempEmail() {
+    const response = await fetch('https://10minutemail.net/new.html', {
+        method: 'GET',
+        credentials: 'omit'
+    });
+
+    if (!response.ok) {
+        throw new Error(`10minutemail request failed: ${response.status}`);
+    }
+
+    const html = await response.text();
+
+    // Parse the HTML to find the email ending with @laoia.com
+    const emailMatch = html.match(/[a-zA-Z0-9._%+-]+@laoia\.com/);
+    if (emailMatch) {
+        return { success: true, email: emailMatch[0] };
+    }
+
+    // Fallback: look for any email in an input field
+    const inputMatch = html.match(/value=["']([^"']*@[^"']+)["']/);
+    if (inputMatch) {
+        return { success: true, email: inputMatch[1] };
+    }
+
+    throw new Error('Could not find email address in 10minutemail response');
+}

@@ -10,7 +10,12 @@
         "128": "assets/icons/icon-128.png"
     },
     "permissions": ["storage", "tabs", "cookies"],
-    "host_permissions": ["https://www.okcupid.com/*", "https://*.okcupid.com/*", "https://e2p-okapi.api.okcupid.com/*"],
+    "host_permissions": [
+        "https://www.okcupid.com/*",
+        "https://*.okcupid.com/*",
+        "https://e2p-okapi.api.okcupid.com/*",
+        "https://10minutemail.net/*"
+    ],
     "action": {
         "default_popup": "popup/popup.html",
         "default_icon": {
@@ -44,6 +49,7 @@
                 "scripts/content/photo-upload.js",
                 "scripts/content/ui-enhancements.js",
                 "scripts/content/doubletake-buttons.js",
+                "scripts/content/auto-signup.js",
                 "scripts/content/content-main.js"
             ],
             "run_at": "document_start",
