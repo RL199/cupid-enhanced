@@ -38,7 +38,7 @@ var DISCOVER_PAGE_ENHANCEMENTS = [
     { selector: '.sliding-pagination', styles: { display: 'inline-flex', justifyContent: 'center' } }
 ];
 
-var BACKGROUND_IMAGE_REGEX = /url\([\"']?(https:\/\/pictures\.match\.com\/photos\/[^\"')]+)[\"']?\)/i;
+var BACKGROUND_IMAGE_REGEX = /url\([\"']?(https:\/\/pictures[\w.-]*\.(?:match|czno)\.com\/photos\/[^\"')]+)[\"']?\)/i;
 
 var PHOTO_DATE_LABEL_STYLES = `
     position: absolute;

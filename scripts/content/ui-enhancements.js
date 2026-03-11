@@ -992,8 +992,11 @@ function getDiscoverPagePhotoUrls() {
 
 async function fetchImageLastModified(imageUrl) {
     try {
-        const response = await fetch(imageUrl, { method: 'HEAD' });
-        return response.headers.get('Last-Modified');
+        if (!isExtensionContextValid()) {
+            return null;
+        }
+        const result = await chrome.runtime.sendMessage({ type: 'FETCH_IMAGE_HEADERS', url: imageUrl });
+        return result?.lastModified || null;
     } catch (error) {
         console.error('[Cupid Enhanced] Failed to fetch headers:', imageUrl, error);
         return null;
@@ -1141,7 +1144,9 @@ async function displayPhotoDatesOnFullscreenImages() {
         const imageContainer = slide.querySelector('div[class*="Yb6VSqG3RppfEoug5fci"]');
         if (!imageContainer) continue;
 
-        const imgEl = imageContainer.querySelector('img[src*="pictures.match.com"]');
+        const imgEl =
+            imageContainer.querySelector('img[src*="czno.com/photos/"]') ||
+            imageContainer.querySelector('img[src*="pictures.match.com"]');
         if (!imgEl) continue;
 
         const buttonEl = imgEl.closest('button');
