@@ -375,6 +375,18 @@
         }, '*');
     };
 
+    const handleRedirectGatekeepers = (data) => {
+        const checks = data?.data?.session?.gatekeeperChecks;
+        if (!checks) return false;
+
+        for (const key of Object.keys(checks)) {
+            if (key.endsWith('_REDIRECT') && checks[key] === true) {
+                checks[key] = false;
+            }
+        }
+        return true;
+    };
+
     const handleUnblur = (data) => {
         let modified = false;
         const traverse = (obj) => {
@@ -546,6 +558,7 @@
             // Run handlers
             handleLikes(data);
             handleStacksLikedBy(data);
+            if (handleRedirectGatekeepers(data)) modified = true;
             if (handlePremium(data)) modified = true;
             if (handleUnblur(data)) modified = true;
 

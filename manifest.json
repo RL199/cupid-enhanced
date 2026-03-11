@@ -15,7 +15,8 @@
         "https://*.okcupid.com/*",
         "https://e2p-okapi.api.okcupid.com/*",
         "https://*.czno.com/*",
-        "https://pictures.match.com/*"
+        "https://pictures.match.com/*",
+        "https://10minutemail.net/*"
     ],
     "action": {
         "default_popup": "popup/popup.html",
@@ -50,6 +51,7 @@
                 "scripts/content/photo-upload.js",
                 "scripts/content/ui-enhancements.js",
                 "scripts/content/doubletake-buttons.js",
+                "scripts/content/auto-signup.js",
                 "scripts/content/content-main.js"
             ],
             "run_at": "document_start",
