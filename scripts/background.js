@@ -190,6 +190,17 @@ query WebLikesCap {
         return true;
     }
 
+    // Handle image header fetch (bypasses CORS in content script)
+    if (message.type === 'FETCH_IMAGE_HEADERS') {
+        fetch(message.url, { method: 'HEAD' })
+            .then(response => {
+                const lastModified = response.headers.get('Last-Modified');
+                sendResponse({ success: true, lastModified });
+            })
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
+
     // Handle photo upload request
     if (message.type === 'UPLOAD_PHOTO') {
         uploadPhoto(message.photoData)

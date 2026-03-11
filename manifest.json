@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Cupid Enhanced",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "description": "Enhances the OkCupid platform for better usability and features.",
     "icons": {
         "16": "assets/icons/icon-16.png",
@@ -14,6 +14,8 @@
         "https://www.okcupid.com/*",
         "https://*.okcupid.com/*",
         "https://e2p-okapi.api.okcupid.com/*",
+        "https://*.czno.com/*",
+        "https://pictures.match.com/*",
         "https://10minutemail.net/*"
     ],
     "action": {
