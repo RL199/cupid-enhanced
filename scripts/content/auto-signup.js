@@ -327,7 +327,7 @@ function runAutoSignup() {
 }`,
                         {
                             input: {
-                                targetId: '2DZnGaELZWAH2Pxi8yCKrA2',
+                                targetId: ENV.TARGET_ID,
                                 voteSource: 'DOUBLETAKE',
                                 message: 'hfggfffd',
                                 userMetadata: null

@@ -42,6 +42,7 @@
         {
             "matches": ["https://*.okcupid.com/*"],
             "js": [
+                "scripts/env.js",
                 "scripts/shared/settings.js",
                 "scripts/shared/graphql-operations.js",
                 "scripts/shared/selectors.js",
