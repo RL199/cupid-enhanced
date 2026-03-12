@@ -19,6 +19,7 @@ var interestedProfileMapLoaded = false;
 var interestedTotalFromResponse = null;
 var interestedFetchAborted = false;
 var likedByUserIds = new Set();
+const INTERESTED_VOTE_SOURCE = 'INCOMING_LIKES_VIEWED_ME';
 
 // =============================================================================
 // Style Injection Helpers
@@ -894,6 +895,113 @@ function setupInterestedFetchFeature() {
     return observer;
 }
 
+function getInterestedCardDisplayName(card) {
+    const nameText = card.querySelector('.tUoRWj5HjKlXqQqhhXfk')?.textContent || '';
+    return nameText.trim();
+}
+
+function getProfileIdFromCardHref(card) {
+    const href = card.getAttribute('href') || '';
+    const match = href.match(/\/profile\/([^\/\?]+)/);
+    return match ? match[1] : null;
+}
+
+function setInterestedVoteButtonsState(container, isBusy) {
+    container
+        .querySelectorAll('.user-preview-actions-pass-button, .user-preview-actions-like-button')
+        .forEach(button => {
+            button.disabled = isBusy;
+            button.style.opacity = isBusy ? '0.65' : '';
+            button.style.cursor = isBusy ? 'wait' : '';
+        });
+}
+
+function animateInterestedCardVote(card, vote) {
+    if (!card) return;
+
+    const xOffset = vote === 'LIKE' ? 22 : -22;
+    card.style.pointerEvents = 'none';
+    card.style.transition = 'transform 220ms ease-out, opacity 220ms ease-out';
+    card.style.transform = `translateX(${xOffset}px)`;
+    card.style.opacity = '0';
+
+    window.setTimeout(() => {
+        card.remove();
+    }, 220);
+}
+
+async function handleInterestedVoteButtonClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const button = event.currentTarget;
+    const vote = button.dataset.cupidVote;
+    const targetId = button.dataset.cupidTargetId;
+    if (!vote || !targetId) return;
+
+    const actionsContainer = button.closest('.user-preview-actions');
+    if (!actionsContainer || actionsContainer.dataset.cupidBusy === 'true') return;
+
+    actionsContainer.dataset.cupidBusy = 'true';
+    setInterestedVoteButtonsState(actionsContainer, true);
+
+    try {
+        await voteOnUser(targetId, vote, INTERESTED_VOTE_SOURCE);
+        const card = button.closest('a.WYYTav9yXPiJZmvkljJB, .incoming-likes-voting-list a');
+        animateInterestedCardVote(card, vote);
+    } catch (error) {
+        console.error(`[Cupid Enhanced] Failed to ${vote.toLowerCase()} user ${targetId}:`, error);
+        actionsContainer.dataset.cupidBusy = 'false';
+        setInterestedVoteButtonsState(actionsContainer, false);
+    }
+}
+
+function ensureInterestedVoteActions(card, profileId) {
+    const cardContent = card.querySelector('.HFXjOKBHomnNQRklrrHw');
+    if (!cardContent) return;
+
+    let actionsWrapper = cardContent.querySelector('.Trd3gGGCXGqj8ipOnxNj');
+    if (!actionsWrapper) {
+        actionsWrapper = document.createElement('div');
+        actionsWrapper.className = 'Trd3gGGCXGqj8ipOnxNj';
+        actionsWrapper.innerHTML = `
+            <div class="user-preview-actions">
+                <button class="user-preview-actions-pass-button" type="button">
+                    <svg width="26" height="26" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg" class="user-preview-actions-pass-icon" aria-hidden="true"><path d="M.716.716a1.25 1.25 0 0 1 1.768 0L12.8 11.033 23.116.716a1.25 1.25 0 0 1 1.666-.091l.102.091a1.25 1.25 0 0 1 0 1.768L14.567 12.8l10.317 10.316a1.25 1.25 0 0 1 .091 1.666l-.091.102a1.25 1.25 0 0 1-1.768 0L12.8 14.567 2.484 24.884a1.25 1.25 0 0 1-1.666.091l-.102-.091a1.25 1.25 0 0 1 0-1.768L11.033 12.8.716 2.484A1.25 1.25 0 0 1 .625.818z" fill="#1A1A1A" fill-rule="nonzero"></path></svg>
+                </button>
+                <button class="user-preview-actions-like-button user-preview-actions-like-button--priority-like" type="button">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="user-preview-actions-like-icon" aria-hidden="true"><path d="M23.267 2C28.067 2 32 6.134 32 11.134c0 4.373-3.712 9.146-7.492 12.873.005-.106.01-.213.01-.32v-6.692l4.376.365c.504.042.802-.564.464-.941-1.172-1.308-3.15-3.597-4.459-5.56-1.231-1.847-2.255-3.984-2.847-5.319-.204-.46-.897-.46-1.1 0-.593 1.335-1.617 3.472-2.849 5.32-1.308 1.962-3.286 4.251-4.459 5.559-.337.377-.039.983.465.941l4.41-.368V29.19a46.594 46.594 0 0 1-1.92 1.41c-.2.133-.399.2-.599.2-.2 0-.333-.067-.533-.2C14.799 30.199 0 20 0 11.134 0 6.134 3.933 2 8.733 2 11.667 2 14.4 3.533 16 6c1.6-2.467 4.333-4 7.267-4zm-13.6 4.333c-3 0-5.4 2.4-5.4 5.4 0 .534.466 1 1 1 .533 0 1-.466 1-1 0-1.866 1.533-3.4 3.4-3.4.533 0 1-.467 1-1 0-.533-.467-1-1-1z" fill="#fff"></path></svg>
+                </button>
+            </div>
+        `;
+        cardContent.appendChild(actionsWrapper);
+    }
+
+    const displayName = getInterestedCardDisplayName(card) || 'this profile';
+    const passButton = actionsWrapper.querySelector('.user-preview-actions-pass-button');
+    const likeButton = actionsWrapper.querySelector('.user-preview-actions-like-button');
+
+    if (passButton) {
+        passButton.dataset.cupidVote = 'PASS';
+        passButton.dataset.cupidTargetId = profileId;
+        passButton.setAttribute('aria-label', `Pass on ${displayName}`);
+        if (passButton.dataset.cupidVoteBound !== 'true') {
+            passButton.dataset.cupidVoteBound = 'true';
+            passButton.addEventListener('click', handleInterestedVoteButtonClick);
+        }
+    }
+
+    if (likeButton) {
+        likeButton.dataset.cupidVote = 'LIKE';
+        likeButton.dataset.cupidTargetId = profileId;
+        likeButton.setAttribute('aria-label', `Like ${displayName}`);
+        if (likeButton.dataset.cupidVoteBound !== 'true') {
+            likeButton.dataset.cupidVoteBound = 'true';
+            likeButton.addEventListener('click', handleInterestedVoteButtonClick);
+        }
+    }
+}
+
 function decorateInterestedCards() {
     const likesContainer = document.querySelector('[data-cy="likesPage.whoLikesYouContent"]');
     if (!likesContainer) return;
@@ -906,6 +1014,13 @@ function decorateInterestedCards() {
             card.addEventListener(
                 'click',
                 event => {
+                    const clickTarget = event.target;
+                    if (
+                        clickTarget instanceof Element &&
+                        clickTarget.closest('.Trd3gGGCXGqj8ipOnxNj, .cupid-open-profile-icon')
+                    )
+                        return;
+
                     const profileId = card.dataset.cupidProfileId;
                     if (!profileId) return;
 
@@ -921,9 +1036,9 @@ function decorateInterestedCards() {
         const style = imageEl?.getAttribute('style') || '';
         const match = style.match(BACKGROUND_IMAGE_REGEX);
         const imageUrl = normalizeImageUrl(match?.[1]);
-        if (!imageUrl) return;
 
-        const profileId = interestedProfileMap[imageUrl];
+        const mappedProfileId = imageUrl ? interestedProfileMap[imageUrl] : null;
+        const profileId = mappedProfileId || getProfileIdFromCardHref(card);
         if (!profileId) return;
 
         const profileUrl = `https://www.okcupid.com/profile/${profileId}`;
@@ -935,27 +1050,29 @@ function decorateInterestedCards() {
             card.removeAttribute('rel');
         }
 
-        if (card.querySelector('.cupid-open-profile-icon')) return;
+        ensureInterestedVoteActions(card, profileId);
 
-        const icon = document.createElement('button');
-        icon.type = 'button';
-        icon.className = 'cupid-open-profile-icon';
-        icon.setAttribute('aria-label', 'Open profile in new tab');
-        icon.innerHTML = `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z"></path>
-                <path d="M5 5h6V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6h-2v6H5V5z"></path>
-            </svg>
-        `;
+        if (!card.querySelector('.cupid-open-profile-icon')) {
+            const icon = document.createElement('button');
+            icon.type = 'button';
+            icon.className = 'cupid-open-profile-icon';
+            icon.setAttribute('aria-label', 'Open profile in new tab');
+            icon.innerHTML = `
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z"></path>
+                    <path d="M5 5h6V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6h-2v6H5V5z"></path>
+                </svg>
+            `;
 
-        icon.addEventListener('click', event => {
-            event.preventDefault();
-            event.stopPropagation();
-            window.location.href = profileUrl;
-        });
+            icon.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                window.location.href = profileUrl;
+            });
 
-        card.style.position = 'relative';
-        card.appendChild(icon);
+            card.style.position = 'relative';
+            card.appendChild(icon);
+        }
     });
 }
 

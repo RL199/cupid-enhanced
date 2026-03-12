@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.3]
 
+### Added
+- Pass and like buttons on profile stack cards in the "Interested in You" section (needs to be fetched using the new "Fetch Interested Profiles" button first to work).
+
 ### Fixed
 
 
