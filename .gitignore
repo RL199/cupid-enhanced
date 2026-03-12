@@ -18,5 +18,8 @@ eslint.config.mjs
 package-lock.json
 package.json
 
+# Environment
+scripts/env.js
+
 # Generated files
 installed-extensions.txt
