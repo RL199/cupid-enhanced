@@ -78,30 +78,6 @@ function waitForStep(stepName, timeout = 15000) {
     return waitForElement(selector, timeout);
 }
 
-var SUPERLIKE_COUNTER_KEY = 'cupidEnhancedSuperlikeSuccessCount';
-
-function getSuperlikeMaxCount() {
-    const configured = Number(ENV?.SUPERLIKE_MAX_COUNT);
-    if (!Number.isFinite(configured) || configured < 0) {
-        return 1;
-    }
-    return Math.floor(configured);
-}
-
-function getSuperlikeSuccessCount() {
-    const value = Number(localStorage.getItem(SUPERLIKE_COUNTER_KEY) || '0');
-    if (!Number.isFinite(value) || value < 0) {
-        return 0;
-    }
-    return Math.floor(value);
-}
-
-function incrementSuperlikeSuccessCount() {
-    const nextCount = getSuperlikeSuccessCount() + 1;
-    localStorage.setItem(SUPERLIKE_COUNTER_KEY, String(nextCount));
-    return nextCount;
-}
-
 /**
  * Fetch a temporary email address from 10minutemail via the background script.
  */
@@ -310,16 +286,6 @@ function initAutoSignup() {
 }
 
 function runAutoSignup() {
-    const superlikeMaxCount = getSuperlikeMaxCount();
-    const superlikeSuccessCount = getSuperlikeSuccessCount();
-
-    if (superlikeSuccessCount >= superlikeMaxCount) {
-        console.log(
-            `[Cupid Enhanced] Signup: Superlike limit reached (${superlikeSuccessCount}/${superlikeMaxCount}). Auto-signup is paused.`
-        );
-        return;
-    }
-
     if (window.location.pathname.startsWith('/signup')) {
         // Wait for the actual onboarding form before activating
         const activate = async () => {
@@ -341,9 +307,6 @@ function runAutoSignup() {
         new URLSearchParams(window.location.search).has('onboarding_complete')
     ) {
         console.log('[Cupid Enhanced] Signup: Onboarding complete, will send superlike after headers are captured...');
-        console.log(
-            `[Cupid Enhanced] Signup: Superlike progress ${superlikeSuccessCount}/${superlikeMaxCount}`
-        );
 
         const sendSuperlike = async () => {
             await new Promise(r => setTimeout(r, 5000));
@@ -374,12 +337,20 @@ function runAutoSignup() {
                     console.log('[Cupid Enhanced] Signup: Superlike result:', result);
 
                     if (result?.data?.userSuperlike?.success) {
-                        const updatedCount = incrementSuperlikeSuccessCount();
-                        console.log(
-                            `[Cupid Enhanced] Signup: Superlike succeeded! Count is now ${updatedCount}/${superlikeMaxCount}.`
-                        );
+                        // Increment the superlike counter
+                        const data = await chrome.storage.local.get('superlike_cycle_count');
+                        const newCount = (data.superlike_cycle_count || 0) + 1;
+                        await chrome.storage.local.set({ superlike_cycle_count: newCount });
+                        console.log(`[Cupid Enhanced] Signup: Superlike succeeded! (${newCount}/${ENV.SUPERLIKE_COUNT})`);
+
+                        if (newCount >= ENV.SUPERLIKE_COUNT) {
+                            console.log('[Cupid Enhanced] Signup: Reached superlike limit, stopping.');
+                            await chrome.storage.local.remove('superlike_cycle_count');
+                            return;
+                        }
+
                         await new Promise(r => setTimeout(r, 2000));
-                        // Navigate to logout; cycle restart will only happen if below configured limit.
+                        // Navigate to logout; the logout handler will restart the cycle
                         window.location.href = 'https://www.okcupid.com/logout';
                         return;
                     }
