@@ -153,3 +153,96 @@ async function voteOnUser(targetId, vote = 'LIKE', voteSource = 'DOUBLETAKE') {
         throw error;
     }
 }
+
+
+/**
+ * Send an intro (like with comment) to a user via WebUserVote.
+ * @param {string} targetId - User ID to send intro to
+ * @param {string} message - Intro message text
+ * @param {string} voteSource - Source of vote (default: 'DOUBLETAKE')
+ * @returns {Promise<object>} Response with vote result
+ */
+async function introVoteOnUser(targetId, message, voteSource = 'DOUBLETAKE') {
+    const query = `mutation WebUserVote($input: UserVoteInput!) {
+  userVote(input: $input) {
+    success
+    voteResults {
+      success
+      statusCode
+      isMutualLike
+      isViaSpotlight
+      isViaSuperBoost
+      votesRemainingInSource
+      __typename
+    }
+    shouldTrackLikesCapReached
+    likesRemaining
+    likesCapResetTime
+    __typename
+  }
+}`;
+
+    const variables = {
+        input: {
+            votes: [
+                {
+                    targetId: targetId,
+                    vote: 'LIKE',
+                    voteSource: voteSource,
+                    userMetadata: null,
+                    comment: {
+                        essay: {
+                            id: `${targetId}//0`,
+                            text: message
+                        }
+                    }
+                }
+            ]
+        }
+    };
+
+    try {
+        const result = await okcupidGraphQL('WebUserVote', query, variables);
+        console.log(`[Cupid Enhanced] Intro to ${targetId}:`, result);
+        return result;
+    } catch (error) {
+        console.error(`[Cupid Enhanced] Intro failed:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Send a superlike to a user.
+ * @param {string} targetId - User ID to superlike
+ * @param {string} message - Superlike message text
+ * @param {string} voteSource - Source of vote (default: 'DOUBLETAKE')
+ * @returns {Promise<object>} Response with superlike result
+ */
+async function superlikeUser(targetId, message, voteSource = 'DOUBLETAKE') {
+    const query = `mutation WebUserSuperlike($input: UserSuperlikeInput!) {
+  userSuperlike(input: $input) {
+    success
+    statusCode
+    isMutualLike
+    __typename
+  }
+}`;
+
+    const variables = {
+        input: {
+            targetId,
+            voteSource,
+            message,
+            userMetadata: null
+        }
+    };
+
+    try {
+        const result = await okcupidGraphQL('WebUserSuperlike', query, variables);
+        console.log(`[Cupid Enhanced] Superlike on ${targetId}:`, result);
+        return result;
+    } catch (error) {
+        console.error(`[Cupid Enhanced] Superlike failed:`, error);
+        throw error;
+    }
+}
