@@ -127,7 +127,6 @@ function injectDoubleTakeButtons() {
         buttonsContainer.appendChild(likeButton);
     }
 
-    console.log('[Cupid Enhanced] Injected like/pass buttons for DoubleTake profile');
 }
 
 /**
@@ -325,6 +324,5 @@ function injectDoubleTakeStackButtons() {
         card.style.position = 'relative';
         card.appendChild(buttonsContainer);
 
-        console.log('[Cupid Enhanced] Injected like/pass buttons for stack card:', userId);
     });
 }
