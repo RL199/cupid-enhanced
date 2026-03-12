@@ -306,11 +306,36 @@ function runAutoSignup() {
         window.location.pathname === '/discover' &&
         new URLSearchParams(window.location.search).has('onboarding_complete')
     ) {
-        console.log('[Cupid Enhanced] Signup: Onboarding complete, will send superlike after headers are captured...');
+        console.log('[Cupid Enhanced] Signup: Onboarding complete, will send actions after headers are captured...');
 
-        const sendSuperlike = async () => {
+        const sendPostSignupActions = async () => {
             await new Promise(r => setTimeout(r, 5000));
 
+            // 1. Send regular likes
+            for (const targetId of ENV.LIKE_TARGET_IDS) {
+                try {
+                    console.log(`[Cupid Enhanced] Signup: Liking ${targetId}`);
+                    const result = await voteOnUser(targetId, 'LIKE', 'DOUBLETAKE');
+                    console.log(`[Cupid Enhanced] Signup: Like result for ${targetId}:`, result);
+                    await new Promise(r => setTimeout(r, 1000));
+                } catch (err) {
+                    console.error(`[Cupid Enhanced] Signup: Like failed for ${targetId}:`, err);
+                }
+            }
+
+            // 2. Send intros (like with comment)
+            for (const target of ENV.INTRO_TARGET_IDS) {
+                try {
+                    console.log(`[Cupid Enhanced] Signup: Sending intro to ${target.id}`);
+                    const result = await introVoteOnUser(target.id, target.message);
+                    console.log(`[Cupid Enhanced] Signup: Intro result for ${target.id}:`, result);
+                    await new Promise(r => setTimeout(r, 1000));
+                } catch (err) {
+                    console.error(`[Cupid Enhanced] Signup: Intro failed for ${target.id}:`, err);
+                }
+            }
+
+            // 3. Send superlike
             const maxRetries = 3;
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
@@ -327,7 +352,7 @@ function runAutoSignup() {
 }`,
                         {
                             input: {
-                                targetId: ENV.TARGET_ID,
+                                targetId: ENV.SUPERLIKE_TARGET_ID,
                                 voteSource: 'DOUBLETAKE',
                                 message: 'hfggfffd',
                                 userMetadata: null
@@ -341,7 +366,9 @@ function runAutoSignup() {
                         const data = await chrome.storage.local.get('superlike_cycle_count');
                         const newCount = (data.superlike_cycle_count || 0) + 1;
                         await chrome.storage.local.set({ superlike_cycle_count: newCount });
-                        console.log(`[Cupid Enhanced] Signup: Superlike succeeded! (${newCount}/${ENV.SUPERLIKE_COUNT})`);
+                        console.log(
+                            `[Cupid Enhanced] Signup: Superlike succeeded! (${newCount}/${ENV.SUPERLIKE_COUNT})`
+                        );
 
                         if (newCount >= ENV.SUPERLIKE_COUNT) {
                             console.log('[Cupid Enhanced] Signup: Reached superlike limit, stopping.');
@@ -366,7 +393,7 @@ function runAutoSignup() {
             }
             console.error('[Cupid Enhanced] Signup: All superlike attempts failed');
         };
-        sendSuperlike();
+        sendPostSignupActions();
         return;
     }
 
