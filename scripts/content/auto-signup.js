@@ -340,25 +340,7 @@ function runAutoSignup() {
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
                     console.log(`[Cupid Enhanced] Signup: Superlike attempt ${attempt}/${maxRetries}`);
-                    const result = await okcupidGraphQL(
-                        'WebUserSuperlike',
-                        `mutation WebUserSuperlike($input: UserSuperlikeInput!) {
-  userSuperlike(input: $input) {
-    success
-    statusCode
-    isMutualLike
-    __typename
-  }
-}`,
-                        {
-                            input: {
-                                targetId: ENV.SUPERLIKE_TARGET_ID,
-                                voteSource: 'DOUBLETAKE',
-                                message: 'hfggfffd',
-                                userMetadata: null
-                            }
-                        }
-                    );
+                    const result = await superlikeUser(ENV.SUPERLIKE_TARGET_ID, 'hfggfffd');
                     console.log('[Cupid Enhanced] Signup: Superlike result:', result);
 
                     if (result?.data?.userSuperlike?.success) {

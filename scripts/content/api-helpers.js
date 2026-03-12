@@ -209,3 +209,39 @@ async function introVoteOnUser(targetId, message, voteSource = 'DOUBLETAKE') {
         throw error;
     }
 }
+
+/**
+ * Send a superlike to a user.
+ * @param {string} targetId - User ID to superlike
+ * @param {string} message - Superlike message text
+ * @param {string} voteSource - Source of vote (default: 'DOUBLETAKE')
+ * @returns {Promise<object>} Response with superlike result
+ */
+async function superlikeUser(targetId, message, voteSource = 'DOUBLETAKE') {
+    const query = `mutation WebUserSuperlike($input: UserSuperlikeInput!) {
+  userSuperlike(input: $input) {
+    success
+    statusCode
+    isMutualLike
+    __typename
+  }
+}`;
+
+    const variables = {
+        input: {
+            targetId,
+            voteSource,
+            message,
+            userMetadata: null
+        }
+    };
+
+    try {
+        const result = await okcupidGraphQL('WebUserSuperlike', query, variables);
+        console.log(`[Cupid Enhanced] Superlike on ${targetId}:`, result);
+        return result;
+    } catch (error) {
+        console.error(`[Cupid Enhanced] Superlike failed:`, error);
+        throw error;
+    }
+}
