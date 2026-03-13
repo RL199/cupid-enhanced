@@ -722,6 +722,15 @@
             sendToContentScript('getMessagesMain', { userId, filter, after }),
 
         /**
+         * Get incoming likes with pagination
+         * @param {string} [sort='LIKES_VIEWS_GLOBAL'] - Sort type for likes list
+         * @param {string} [after] - Pagination cursor for more results
+         * @returns {Promise<object>}
+         */
+        getIncomingLikes: (sort = 'LIKES_VIEWS_GLOBAL', after = null) =>
+            sendToContentScript('getIncomingLikes', { sort, after }),
+
+        /**
          * Vote on a user (like/pass)
          * @param {string} targetId - User ID to vote on
          * @param {string} vote - Vote type: 'LIKE', 'PASS', or 'SUPERLIKE'
@@ -782,6 +791,11 @@ Available commands:
   - Optional 2nd param: filter ('ALL', 'REPLIES', 'MATCHES')
   - Optional 3rd param: pagination cursor for more results
 
+%cawait cupidAPI.getIncomingLikes('LIKES_VIEWS_GLOBAL')%c
+    - Get incoming likes with previews
+    - Optional 1st param: sort (e.g. 'LIKES_VIEWS_GLOBAL', 'LAST_LOGIN_DESCENDING')
+    - Optional 2nd param: pagination cursor for more results
+
 %cawait cupidAPI.vote('USER_ID', 'LIKE')%c
   - Vote on a user: 'LIKE', 'PASS', or 'SUPERLIKE'
   - Optional 3rd param: voteSource (default: 'INCOMING_LIKES_SUPERLIKE_INTRO')
@@ -798,6 +812,7 @@ Available commands:
 `,
                 'color: #ff1493; font-size: 16px; font-weight: bold;',
                 '',
+                'color: #00bfff; font-family: monospace;', '',
                 'color: #00bfff; font-family: monospace;', '',
                 'color: #00bfff; font-family: monospace;', '',
                 'color: #00bfff; font-family: monospace;', '',

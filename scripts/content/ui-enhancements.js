@@ -728,6 +728,9 @@ async function handleConsoleAPIRequest(data) {
             case 'getMessagesMain':
                 result = await getMessagesMain(payload.userId, payload.filter, payload.after);
                 break;
+            case 'getIncomingLikes':
+                result = await getIncomingLikes(payload.sort, payload.after);
+                break;
             case 'vote':
                 result = await voteOnUser(payload.targetId, payload.vote, payload.voteSource);
                 break;
