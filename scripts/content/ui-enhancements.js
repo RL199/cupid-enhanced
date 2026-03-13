@@ -20,6 +20,11 @@ var interestedTotalFromResponse = null;
 var interestedFetchAborted = false;
 var likedByUserIds = new Set();
 const INTERESTED_VOTE_SOURCE = 'INCOMING_LIKES_VIEWED_ME';
+const LIKED_BY_TAG_INNER_HTML =
+    '<div class="dt-tags-tag dt-tags-tag--like"><svg height="27" viewBox="0 0 30 27" width="30" xmlns="http://www.w3.org/2000/svg"><path d="M5.551 8.695a1 1 0 1 1-2 0 5.396 5.396 0 0 1 5.39-5.39 1 1 0 0 1 0 2 3.394 3.394 0 0 0-3.39 3.39m9.45 18.089s15-10.36 15-18.632C30 3.65 26.53 0 22.25 0 18.933 0 16.107 2.19 15 5.266 13.891 2.19 11.065 0 7.75 0 3.47 0 0 3.65 0 8.152c0 8.395 15 18.632 15 18.632" fill="#fff" fill-rule="evenodd" mask="url(#a)"></path></svg>They like you</div>';
+const QUICKMATCH_TOP_SELECTOR = '#quickmatch-aria-tabpanel > div > div > div.desktop-dt-top';
+const QUICKMATCH_TOP_TAGS_SELECTOR = '#quickmatch-aria-tabpanel > div > div > div.desktop-dt-top > div.dt-tags';
+const LIKED_BY_TOP_TAG_ATTRIBUTE = 'data-cupid-liked-by-tag';
 
 // =============================================================================
 // Style Injection Helpers
@@ -110,18 +115,63 @@ function loadLikedByUserIds() {
     }
 }
 
-/**
- * Update the liked-by indicator in the Cupid Enhanced section for the current profile
- */
+function getQuickmatchTagsContainer() {
+    return (
+        document.querySelector(QUICKMATCH_TOP_TAGS_SELECTOR) ||
+        document.querySelector('#quickmatch-aria-tabpanel .desktop-dt-top .dt-tags') ||
+        null
+    );
+}
+
+function ensureQuickmatchTagsContainer() {
+    const existing = getQuickmatchTagsContainer();
+    if (existing) return existing;
+
+    const topContainer =
+        document.querySelector(QUICKMATCH_TOP_SELECTOR) ||
+        document.querySelector('#quickmatch-aria-tabpanel .desktop-dt-top');
+    if (!topContainer) return null;
+
+    const tagsContainer = document.createElement('div');
+    tagsContainer.className = 'dt-tags';
+
+    const photosContainer = topContainer.querySelector('.desktop-dt-photos');
+    if (photosContainer) {
+        topContainer.insertBefore(tagsContainer, photosContainer.nextSibling);
+    } else {
+        topContainer.appendChild(tagsContainer);
+    }
+
+    return tagsContainer;
+}
+
+function updateQuickmatchLikedByTag(isLikedBy) {
+    const tagsContainer = isLikedBy ? ensureQuickmatchTagsContainer() : getQuickmatchTagsContainer();
+    if (!tagsContainer) return;
+
+    const existingTag = tagsContainer.querySelector(`[${LIKED_BY_TOP_TAG_ATTRIBUTE}="true"]`);
+
+    if (isLikedBy) {
+        if (existingTag) return;
+
+        const template = document.createElement('template');
+        template.innerHTML = LIKED_BY_TAG_INNER_HTML;
+        const likeTag = template.content.firstElementChild;
+        if (!likeTag) return;
+
+        likeTag.setAttribute(LIKED_BY_TOP_TAG_ATTRIBUTE, 'true');
+        tagsContainer.appendChild(likeTag);
+        return;
+    }
+
+    existingTag?.remove();
+}
+
 function updateLikedByIndicator() {
-    const indicator = document.getElementById('liked-by-status');
-    if (!indicator) return;
-
     const currentProfileId = getCurrentUserIdFromDOM();
-    const isLikedBy = currentProfileId && likedByUserIds.has(currentProfileId);
+    const isLikedBy = Boolean(currentProfileId && likedByUserIds.has(currentProfileId));
 
-    indicator.className = `matchprofile-details-text cupid-liked-by-indicator ${isLikedBy ? 'cupid-liked-by-active' : 'cupid-liked-by-inactive'}`;
-    indicator.textContent = isLikedBy ? '\ud83d\udc97 This person likes you!' : '\ud83d\udc94 No like detected';
+    updateQuickmatchLikedByTag(isLikedBy);
 }
 
 // =============================================================================
@@ -1388,7 +1438,7 @@ function createCupidSection() {
 
     // Check if current profile liked the user
     const currentProfileId = getCurrentUserIdFromDOM();
-    const isLikedBy = currentProfileId && likedByUserIds.has(currentProfileId);
+    const isLikedBy = Boolean(currentProfileId && likedByUserIds.has(currentProfileId));
 
     content.innerHTML = `
         <div class="matchprofile-details-text cupid-liked-by-indicator ${isLikedBy ? 'cupid-liked-by-active' : 'cupid-liked-by-inactive'}" id="liked-by-status">
@@ -1399,6 +1449,8 @@ function createCupidSection() {
         <div class="matchprofile-details-text" id="likes-remaining">Likes Remaining: ${likesRemaining} (max 500)</div>
         <div class="matchprofile-details-text" id="likes-reset-time">Next Likes Reset: ${likesResetTime}</div>
     `;
+
+    updateQuickmatchLikedByTag(isLikedBy);
 
     section.append(title, content);
     return section;
