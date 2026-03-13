@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.3]
+## [1.5.0]
 
 ### Added
 - Pass and like buttons on profile stack cards in the "Interested in You" section (needs to be fetched using the new "Fetch Interested Profiles" button first to work).
@@ -13,8 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Don't show user guides and Onboarding popups for users to avoid annoying.
 - Interested profiles fetch button now shown in every section of the site instead of just the "Interested in You" section.
-
-### Fixed
 
 
 ## [1.4.2]
