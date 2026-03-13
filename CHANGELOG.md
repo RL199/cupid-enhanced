@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Pass and like buttons on profile stack cards in the "Interested in You" section (needs to be fetched using the new "Fetch Interested Profiles" button first to work).
 
+### Changed
+- Don't show user guides and Onboarding popups for users to avoid annoying.
+
 ### Fixed
 
 
@@ -17,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - handle images from additional cdn domain czno.com
-
 
 ## [1.4.1]
 

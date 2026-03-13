@@ -391,6 +391,33 @@
         return modified;
     };
 
+    const handleSeenFlags = (data) => {
+        const me = data?.data?.me;
+        if (!me || typeof me !== 'object') return false;
+
+        let modified = false;
+
+        // Force all hasSeen* booleans/boolean-arrays on me to true.
+        Object.entries(me).forEach(([key, value]) => {
+            if (!key.startsWith('hasSeen')) return;
+
+            if (typeof value === 'boolean' && value !== true) {
+                me[key] = true;
+                modified = true;
+                return;
+            }
+
+            if (Array.isArray(value) && value.every(item => typeof item === 'boolean')) {
+                if (value.some(item => item !== true)) {
+                    me[key] = value.map(() => true);
+                    modified = true;
+                }
+            }
+        });
+
+        return modified;
+    };
+
     // =============================================================================
     // Navbar Likes Count - JS Bundle Interception
     // Patches the navbar-likes-count component to read from localStorage
@@ -547,6 +574,7 @@
             handleLikes(data);
             handleStacksLikedBy(data);
             if (handlePremium(data)) modified = true;
+            if (handleSeenFlags(data)) modified = true;
             if (handleUnblur(data)) modified = true;
 
             collectInterestedProfileMappings(data);
