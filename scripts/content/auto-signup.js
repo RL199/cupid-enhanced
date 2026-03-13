@@ -138,7 +138,7 @@ async function handleLocationStep() {
     await new Promise(r => setTimeout(r, 1000));
 
     const cityInput = await waitForElement('input[data-cy="detailsEditor.locationField"]');
-    setReactInputValue(cityInput, 'Beersheba');
+    setReactInputValue(cityInput, ENV.LOCATION);
 
     // Wait for city validation/autocomplete
     await new Promise(r => setTimeout(r, 1500));

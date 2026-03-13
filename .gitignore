@@ -9,6 +9,7 @@ source files/
 python-scripts/
 notes/
 node_modules/
+cupid-enhanced-auto-signup.code-workspace
 
 # config files
 .vscode/
