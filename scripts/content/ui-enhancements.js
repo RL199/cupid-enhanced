@@ -141,7 +141,7 @@ async function loadInterestedProfileMap() {
 }
 
 function updateInterestedProfileMap(entries) {
-    if (!isExtensionContextValid() || !isLikesIncomingTab()) return 0;
+    if (!isExtensionContextValid()) return 0;
 
     let updated = false;
     let addedCount = 0;
@@ -239,11 +239,7 @@ function getInterestedTargetCount() {
 }
 
 function getInterestedHeaderContainer() {
-    const likesPage = document.querySelector('[data-cy="likesPage"]');
-    if (!likesPage) return null;
-
-    // Mount directly on likesPage for fixed positioning
-    return likesPage;
+    return document.body || null;
 }
 
 function ensureInterestedFetchButton() {
@@ -767,6 +763,7 @@ function setupObservers() {
     // Inject liked-by indicator styles (always active)
     injectStyles('cupid-liked-by-styles', LIKED_BY_INDICATOR_STYLES);
     injectStyles('cupid-translate-btn-styles', TRANSLATE_BUTTON_STYLES);
+    injectStyles('cupid-interested-fetch-styles', INTERESTED_FETCH_STYLES);
 
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
@@ -877,22 +874,22 @@ function enhanceLikesYouPage() {
     };
 }
 
-function isLikesIncomingTab() {
-    return !!document.querySelector('[data-cy="likesPage.tab"][data-type="likesIncoming"]');
-}
-
 function setupInterestedFetchFeature() {
     let initialized = false;
 
-    const observer = createBodyObserver(() => {
-        if (!isLikesIncomingTab()) return;
-
+    const initializeFeature = () => {
         if (!initialized) {
             initialized = true;
             loadInterestedProfileMap();
         }
 
         ensureInterestedFetchButton();
+    };
+
+    initializeFeature();
+
+    const observer = createBodyObserver(() => {
+        initializeFeature();
     });
 
     return observer;

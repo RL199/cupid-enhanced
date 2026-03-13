@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Don't show user guides and Onboarding popups for users to avoid annoying.
+- Interested profiles fetch button now shown in every section of the site instead of just the "Interested in You" section.
 
 ### Fixed
 

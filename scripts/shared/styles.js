@@ -268,7 +268,9 @@ var LIKES_YOU_STYLES = `
         height: 16px;
         fill: #ffffff;
     }
+`;
 
+var INTERESTED_FETCH_STYLES = `
     .cupid-fetch-interested-wrapper {
         position: fixed;
         bottom: 12px;
