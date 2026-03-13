@@ -1026,7 +1026,7 @@ function decorateInterestedCards() {
 
                     event.preventDefault();
                     event.stopPropagation();
-                    window.location.href = `https://www.okcupid.com/profile/${profileId}`;
+                    window.open(`/profile/${profileId}`, '_blank', 'noopener,noreferrer');
                 },
                 true
             );
@@ -1041,7 +1041,7 @@ function decorateInterestedCards() {
         const profileId = mappedProfileId || getProfileIdFromCardHref(card);
         if (!profileId) return;
 
-        const profileUrl = `https://www.okcupid.com/profile/${profileId}`;
+        const profileUrl = `/profile/${profileId}`;
 
         if (card.dataset.cupidProfileId !== profileId) {
             card.dataset.cupidProfileId = profileId;
