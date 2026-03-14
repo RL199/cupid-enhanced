@@ -10,6 +10,33 @@
 let currentUserId = null;
 let photoUploadPlacementObserver = null;
 
+const UPLOAD_BUTTON_HTML = `
+    <div class="navbar-link-icon-container" aria-hidden="true">
+        <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="navbar-link-icon">
+            <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-1.8c1.77 0 3.2-1.43 3.2-3.2s-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2 1.43 3.2 3.2 3.2z" fill="currentColor"></path>
+        </svg>
+    </div>
+    <h1 class="navbar-link-text">Upload Photo</h1>
+`;
+
+/**
+ * Helper to calculate final dimensions maintaining aspect ratio
+ */
+function calculateFinalDimensions(origWidth, origHeight, maxDim) {
+    let width = origWidth;
+    let height = origHeight;
+    if (width > maxDim || height > maxDim) {
+        if (width > height) {
+            height = Math.round((height / width) * maxDim);
+            width = maxDim;
+        } else {
+            width = Math.round((width / height) * maxDim);
+            height = maxDim;
+        }
+    }
+    return { width, height };
+}
+
 /**
  * Upload a photo to OkCupid using a multi-step process:
  * 1. Request an upload URL from OkCupid
@@ -49,13 +76,9 @@ async function uploadPhotoToOkCupid(file, options = {}) {
 
             // Calculate new dimensions if resize needed
             if (needsResize) {
-                if (width > height) {
-                    height = Math.round((height / width) * maxDimension);
-                    width = maxDimension;
-                } else {
-                    width = Math.round((width / height) * maxDimension);
-                    height = maxDimension;
-                }
+                const newDims = calculateFinalDimensions(width, height, maxDimension);
+                width = newDims.width;
+                height = newDims.height;
             }
 
             // Create canvas and draw image
@@ -214,14 +237,7 @@ function createPhotoUploadUI() {
         existingButton.className = 'navbar-link';
         existingButton.style.cursor = 'pointer';
         if (!existingButton.querySelector('.navbar-link-text')) {
-            existingButton.innerHTML = `
-                <div class="navbar-link-icon-container" aria-hidden="true">
-                    <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="navbar-link-icon">
-                        <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-1.8c1.77 0 3.2-1.43 3.2-3.2s-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2 1.43 3.2 3.2 3.2z" fill="currentColor"></path>
-                    </svg>
-                </div>
-                <h1 class="navbar-link-text">Upload Photo</h1>
-            `;
+            existingButton.innerHTML = UPLOAD_BUTTON_HTML;
         }
         mountPhotoUploadButton(existingButton);
         observePhotoUploadButtonPlacement(existingButton);
@@ -237,14 +253,7 @@ function createPhotoUploadUI() {
     uploadButton.type = 'button';
     uploadButton.className = 'navbar-link';
     uploadButton.style.cursor = 'pointer';
-    uploadButton.innerHTML = `
-        <div class="navbar-link-icon-container" aria-hidden="true">
-            <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="navbar-link-icon">
-                <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-1.8c1.77 0 3.2-1.43 3.2-3.2s-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2 1.43 3.2 3.2 3.2z" fill="currentColor"></path>
-            </svg>
-        </div>
-        <h1 class="navbar-link-text">Upload Photo</h1>
-    `;
+    uploadButton.innerHTML = UPLOAD_BUTTON_HTML;
     uploadButton.title = 'Upload high-res photo';
     uploadButton.hidden = true;
     document.body.appendChild(uploadButton);
@@ -563,22 +572,6 @@ function setupPhotoUploadEvents(uploadButton, fileInput, modal) {
         quality: (parseInt(qualityInput.value, 10) || 95) / 100,
         outputFormat: formatSelect.value || 'image/jpeg'
     });
-
-    // Helper to calculate final dimensions
-    const calculateFinalDimensions = (origWidth, origHeight, maxDim) => {
-        let width = origWidth;
-        let height = origHeight;
-        if (width > maxDim || height > maxDim) {
-            if (width > height) {
-                height = Math.round((height / width) * maxDim);
-                width = maxDim;
-            } else {
-                width = Math.round((width / height) * maxDim);
-                height = maxDim;
-            }
-        }
-        return { width, height };
-    };
 
     // Helper to update the info display
     const updateInfoDisplay = () => {
