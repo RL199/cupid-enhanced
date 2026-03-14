@@ -8,6 +8,7 @@
 
 // Current user ID (will be populated from API responses)
 let currentUserId = null;
+let photoUploadPlacementObserver = null;
 
 /**
  * Upload a photo to OkCupid using a multi-step process:
@@ -172,12 +173,60 @@ async function getCurrentUserId() {
     throw new Error('Could not get current user ID');
 }
 
+function getNavbarLinksContainer() {
+    return document.querySelector('.navbar-links');
+}
+
+function mountPhotoUploadButton(uploadButton) {
+    const navbarLinks = getNavbarLinksContainer();
+    if (!navbarLinks) {
+        uploadButton.hidden = true;
+        return;
+    }
+
+    uploadButton.hidden = false;
+    if (uploadButton.parentElement !== navbarLinks) {
+        navbarLinks.appendChild(uploadButton);
+    }
+}
+
+function observePhotoUploadButtonPlacement(uploadButton) {
+    if (photoUploadPlacementObserver) return;
+
+    photoUploadPlacementObserver = new MutationObserver(() => {
+        mountPhotoUploadButton(uploadButton);
+    });
+
+    photoUploadPlacementObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+}
+
 /**
  * Create and inject the photo upload UI into the page
  */
 function createPhotoUploadUI() {
     // Check if UI already exists
-    if (document.getElementById('cupid-photo-upload-btn')) return;
+    const existingButton = document.getElementById('cupid-photo-upload-btn');
+    if (existingButton) {
+        existingButton.type = 'button';
+        existingButton.className = 'navbar-link';
+        existingButton.style.cursor = 'pointer';
+        if (!existingButton.querySelector('.navbar-link-text')) {
+            existingButton.innerHTML = `
+                <div class="navbar-link-icon-container" aria-hidden="true">
+                    <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="navbar-link-icon">
+                        <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-1.8c1.77 0 3.2-1.43 3.2-3.2s-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2 1.43 3.2 3.2 3.2z" fill="currentColor"></path>
+                    </svg>
+                </div>
+                <h1 class="navbar-link-text">Upload Photo</h1>
+            `;
+        }
+        mountPhotoUploadButton(existingButton);
+        observePhotoUploadButtonPlacement(existingButton);
+        return;
+    }
 
     // Inject styles
     injectPhotoUploadStyles();
@@ -185,16 +234,22 @@ function createPhotoUploadUI() {
     // Create upload button
     const uploadButton = document.createElement('button');
     uploadButton.id = 'cupid-photo-upload-btn';
+    uploadButton.type = 'button';
+    uploadButton.className = 'navbar-link';
+    uploadButton.style.cursor = 'pointer';
     uploadButton.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
-        </svg>
-        Upload Photo
+        <div class="navbar-link-icon-container" aria-hidden="true">
+            <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="navbar-link-icon">
+                <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-1.8c1.77 0 3.2-1.43 3.2-3.2s-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2 1.43 3.2 3.2 3.2z" fill="currentColor"></path>
+            </svg>
+        </div>
+        <h1 class="navbar-link-text">Upload Photo</h1>
     `;
     uploadButton.title = 'Upload high-res photo';
+    uploadButton.hidden = true;
     document.body.appendChild(uploadButton);
+    mountPhotoUploadButton(uploadButton);
+    observePhotoUploadButtonPlacement(uploadButton);
 
     // Create hidden file input
     const fileInput = document.createElement('input');
@@ -256,40 +311,6 @@ function injectPhotoUploadStyles() {
     if (document.getElementById('cupid-photo-upload-styles')) return;
 
     const styles = `
-        #cupid-photo-upload-btn {
-            position: fixed;
-            bottom: 12px;
-            left: 38px;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            background: #ff1493;
-            color: #ffffff;
-            border: none;
-            border-radius: 24px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        #cupid-photo-upload-btn:hover {
-            background: #e01280;
-            transform: scale(1.03);
-        }
-
-        #cupid-photo-upload-btn:active {
-            transform: scale(1);
-        }
-
-        #cupid-photo-upload-btn svg {
-            width: 18px;
-            height: 18px;
-        }
-
         #cupid-photo-upload-modal {
             display: none;
             position: fixed;
