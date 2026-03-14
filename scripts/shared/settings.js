@@ -12,12 +12,12 @@
 var SETTINGS_KEY = 'cupidEnhancedSettings';
 
 var DEFAULT_SETTINGS = {
-    staffMode: false,
+    staffMode: true,
     enhanceDiscoverPage: true,
-    enhanceLikesYouPage: false,
+    enhanceLikesYouPage: true,
     darkMode: false,
-    anonymousMessageRead: false,
-    photoUploadButton: false,
+    anonymousMessageRead: true,
+    photoUploadButton: true,
     translateLanguage: 'en'
 };
 
