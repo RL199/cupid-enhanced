@@ -274,7 +274,7 @@ function createPhotoUploadUI() {
     modal.innerHTML = `
         <div class="cupid-modal-content">
             <div class="cupid-modal-header">
-                <h3>Upload Photo</h3>
+                <h3>Upload High-Res Photo</h3>
                 <button class="cupid-modal-close">&times;</button>
             </div>
             <div class="cupid-modal-body">
