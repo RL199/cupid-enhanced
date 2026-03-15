@@ -613,10 +613,12 @@ async function handleInterestedFetchButtonClick(button) {
     const maxPasses = 10;
     const fetchedCombos = loadFetchedCombos();
 
+    let passAdded = 0;
+    let hasError = false;
+
     while ((targetCount == null || currentCount < targetCount) && passes < maxPasses && !interestedFetchAborted) {
         passes += 1;
-        let passAdded = 0;
-        let errorCount = 0;
+        passAdded = 0;
         let newCombosThisPass = 0;
         let reachedTarget = false;
 
@@ -632,7 +634,10 @@ async function handleInterestedFetchButtonClick(button) {
                 fetchedCombos.add(nullKey);
                 saveFetchedCombos(fetchedCombos);
                 const { addedCount, error } = await fetchInterestedForCursor(sort, null);
-                if (error) errorCount++;
+                if (error) {
+                    hasError = true;
+                    break;
+                }
                 totalAdded += addedCount;
                 passAdded += addedCount;
                 requestCount += 1;
@@ -656,7 +661,10 @@ async function handleInterestedFetchButtonClick(button) {
                 fetchedCombos.add(comboKey);
                 saveFetchedCombos(fetchedCombos);
                 const { addedCount, error } = await fetchInterestedForCursor(sort, cursor);
-                if (error) errorCount++;
+                if (error) {
+                    hasError = true;
+                    break;
+                }
                 totalAdded += addedCount;
                 passAdded += addedCount;
                 requestCount += 1;
@@ -669,7 +677,10 @@ async function handleInterestedFetchButtonClick(button) {
                 }
                 await sleep(50);
             }
+            if (hasError) break;
         }
+
+        if (hasError) break;
 
         currentCount = getInterestedProfileIdCount();
 
@@ -695,10 +706,18 @@ async function handleInterestedFetchButtonClick(button) {
     interestedFetchAborted = false;
 
     if (status) {
-        const targetLabel = targetCount != null ? `${currentCount}/${targetCount}` : `${currentCount}`;
-        const stopLabel = stoppedEarly ? 'Stopped' : 'Done';
-        const newLabel = newProfilesAdded > 0 ? ` • +${newProfilesAdded} new` : '';
-        setInterestedFetchStatus(status, `${stopLabel} • ${targetLabel} IDs${newLabel}`);
+        if (hasError) {
+            setInterestedFetchStatus(status, 'Error: Please reload the page');
+            status.style.color = 'red';
+            setTimeout(() => {
+                status.style.color = 'silver';
+            }, 5000);
+        } else {
+            const targetLabel = targetCount != null ? `${currentCount}/${targetCount}` : `${currentCount}`;
+            const stopLabel = stoppedEarly ? 'Stopped' : 'Done';
+            const newLabel = newProfilesAdded > 0 ? ` • +${newProfilesAdded} new` : '';
+            setInterestedFetchStatus(status, `${stopLabel} • ${targetLabel} IDs${newLabel}`);
+        }
     }
     button.disabled = false;
     setInterestedFetchButtonLabel(button, 'Fetch Interested Profiles');
