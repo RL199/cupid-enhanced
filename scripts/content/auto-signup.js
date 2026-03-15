@@ -379,9 +379,9 @@ function runAutoSignup() {
         return;
     }
 
-    // After logout, wait 10s ± 2s then restart the signup cycle
+    // After logout, wait ENV.WAIT_BETWEEN_SIGNUPS ms ± 2s then restart the signup cycle
     if (window.location.pathname === '/logout' || window.location.pathname === '/login') {
-        const delay = 100000 + Math.floor(Math.random() * 4001) - 2000; // 8000–12000ms
+        const delay = ENV.WAIT_BETWEEN_SIGNUPS + Math.floor(Math.random() * 4001) - 2000;
         console.log(`[Cupid Enhanced] Signup: Logged out. Restarting signup in ${delay}ms...`);
         setTimeout(() => {
             window.location.href = 'https://www.okcupid.com/signup';
