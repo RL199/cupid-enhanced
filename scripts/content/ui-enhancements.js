@@ -289,35 +289,76 @@ function getInterestedTargetCount() {
 }
 
 function getInterestedHeaderContainer() {
-    return document.body || null;
+    return document.querySelector('.navbar-links');
+}
+
+function setInterestedFetchButtonLabel(button, label) {
+    const labelEl = button.querySelector('.cupid-navbar-text');
+    if (labelEl) {
+        labelEl.textContent = label;
+        return;
+    }
+
+    button.textContent = label;
+}
+
+function setInterestedFetchStatus(statusEl, text) {
+    if (!statusEl) return;
+    statusEl.textContent = text || '';
+    statusEl.hidden = !text;
 }
 
 function ensureInterestedFetchButton() {
     const headerContainer = getInterestedHeaderContainer();
     if (!headerContainer) {
-        console.debug('[Cupid Enhanced] Interested button: header container not found');
+        console.debug('[Cupid Enhanced] Interested button: navbar links not found');
         return;
     }
 
-    if (headerContainer.querySelector('.cupid-fetch-interested-wrapper')) {
-        console.debug('[Cupid Enhanced] Interested button: already mounted');
+    const existingWrapper = document.querySelector('.cupid-fetch-interested-wrapper');
+    if (existingWrapper) {
+        if (existingWrapper.parentElement !== headerContainer) {
+            headerContainer.appendChild(existingWrapper);
+        }
         return;
     }
 
     const wrapper = document.createElement('div');
     wrapper.className = 'cupid-fetch-interested-wrapper';
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.alignItems = 'center';
+    wrapper.style.justifyContent = 'center';
+    wrapper.style.height = '100%';
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'cupid-fetch-interested-ids';
-    button.textContent = 'Fetch Interested Profiles';
+    button.className = 'navbar-link cupid-fetch-interested-ids';
+    button.setAttribute('aria-label', 'Fetch Interested Profiles');
+    button.style.cursor = 'pointer';
+    button.style.width = '100%';
+    button.style.flex = '1';
+    button.style.justifyContent = 'center';
+    button.innerHTML = `
+        <div class="navbar-link-icon-container" aria-hidden="true">
+            <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="navbar-link-icon">
+                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="currentColor"></path>
+            </svg>
+        </div>
+        <h1 class="cupid-navbar-text" style="font-size: 100%; font-weight: 500;">Fetch Interested Profiles</h1>
+    `;
     button.addEventListener('click', () => {
         handleInterestedFetchButtonClick(button);
     });
 
-    const status = document.createElement('div');
-    status.className = 'cupid-fetch-interested-status';
-    status.textContent = '';
+    const status = document.createElement('h1');
+    status.className = 'cupid-navbar-text cupid-fetch-interested-status';
+    status.style.color = 'silver';
+    status.style.textAlign = 'center';
+    status.style.width = '100%';
+    status.style.fontSize = '100%';
+    status.style.fontWeight = '500';
+    status.hidden = true;
 
     wrapper.append(button, status);
     headerContainer.appendChild(wrapper);
@@ -538,7 +579,7 @@ function saveFetchedCombos(combos) {
 async function handleInterestedFetchButtonClick(button) {
     if (button.dataset.cupidBusy === 'true') {
         interestedFetchAborted = true;
-        button.innerHTML = '<span class="cupid-fetch-spinner"></span> Stopping';
+        setInterestedFetchButtonLabel(button, 'Stopping...');
         button.disabled = true;
         return;
     }
@@ -548,9 +589,9 @@ async function handleInterestedFetchButtonClick(button) {
     const wrapper = button.closest('.cupid-fetch-interested-wrapper');
     const status = wrapper?.querySelector('.cupid-fetch-interested-status') || null;
 
-    button.innerHTML = '<span class="cupid-fetch-spinner"></span> Stop';
-    button.classList.add('cupid-fetch-active');
-    if (status) status.textContent = 'Loading...';
+    setInterestedFetchButtonLabel(button, 'Stop Fetch');
+    button.classList.add('isSelected');
+    setInterestedFetchStatus(status, 'Loading...');
 
     await loadInterestedProfileMap();
 
@@ -596,7 +637,7 @@ async function handleInterestedFetchButtonClick(button) {
                 passAdded += addedCount;
                 requestCount += 1;
                 currentCount = getInterestedProfileIdCount();
-                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} Profiles`;
+                setInterestedFetchStatus(status, `Loading... ${currentCount}/${targetCount ?? '?'} Profiles`);
 
                 if (targetCount != null && currentCount >= targetCount) {
                     reachedTarget = true;
@@ -620,7 +661,7 @@ async function handleInterestedFetchButtonClick(button) {
                 passAdded += addedCount;
                 requestCount += 1;
                 currentCount = getInterestedProfileIdCount();
-                if (status) status.textContent = `${currentCount}/${targetCount ?? '?'} Profiles`;
+                setInterestedFetchStatus(status, `Loading... ${currentCount}/${targetCount ?? '?'} Profiles`);
 
                 if (targetCount != null && currentCount >= targetCount) {
                     reachedTarget = true;
@@ -657,11 +698,11 @@ async function handleInterestedFetchButtonClick(button) {
         const targetLabel = targetCount != null ? `${currentCount}/${targetCount}` : `${currentCount}`;
         const stopLabel = stoppedEarly ? 'Stopped' : 'Done';
         const newLabel = newProfilesAdded > 0 ? ` • +${newProfilesAdded} new` : '';
-        status.textContent = `${stopLabel} • ${targetLabel} IDs${newLabel}`;
+        setInterestedFetchStatus(status, `${stopLabel} • ${targetLabel} IDs${newLabel}`);
     }
     button.disabled = false;
-    button.textContent = 'Fetch Interested Profiles';
-    button.classList.remove('cupid-fetch-active');
+    setInterestedFetchButtonLabel(button, 'Fetch Interested Profiles');
+    button.classList.remove('isSelected');
     button.dataset.cupidBusy = 'false';
 }
 
@@ -813,7 +854,6 @@ function setupObservers() {
     // Inject liked-by indicator styles (always active)
     injectStyles('cupid-liked-by-styles', LIKED_BY_INDICATOR_STYLES);
     injectStyles('cupid-translate-btn-styles', TRANSLATE_BUTTON_STYLES);
-    injectStyles('cupid-interested-fetch-styles', INTERESTED_FETCH_STYLES);
 
     const observerConfig = [
         { key: 'discoverPage', setting: 'enhanceDiscoverPage', fn: enhanceDiscoverPage },
