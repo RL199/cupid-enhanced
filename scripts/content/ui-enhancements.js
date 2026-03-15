@@ -17,8 +17,10 @@ var lastFetchedUserId = null;
 var interestedProfileMap = {};
 var interestedProfileMapLoaded = false;
 var interestedTotalFromResponse = null;
+var trueInterestedTotal = null;
 var interestedFetchAborted = false;
 var likedByUserIds = new Set();
+var silhouetteIds = new Set();
 const INTERESTED_VOTE_SOURCE = 'INCOMING_LIKES_VIEWED_ME';
 const LIKED_BY_TAG_INNER_HTML =
     '<div class="dt-tags-tag dt-tags-tag--like"><svg height="27" viewBox="0 0 30 27" width="30" xmlns="http://www.w3.org/2000/svg"><path d="M5.551 8.695a1 1 0 1 1-2 0 5.396 5.396 0 0 1 5.39-5.39 1 1 0 0 1 0 2 3.394 3.394 0 0 0-3.39 3.39m9.45 18.089s15-10.36 15-18.632C30 3.65 26.53 0 22.25 0 18.933 0 16.107 2.19 15 5.266 13.891 2.19 11.065 0 7.75 0 3.47 0 0 3.65 0 8.152c0 8.395 15 18.632 15 18.632" fill="#fff" fill-rule="evenodd" mask="url(#a)"></path></svg>They like you</div>';
@@ -80,8 +82,13 @@ function listenForLikesData() {
             currentUserId = userId;
         }
 
-        if (type === 'INTERESTED_PROFILE_CURSOR_MAP' && Array.isArray(entries) && entries.length > 0) {
-            updateInterestedProfileMap(entries);
+        if (type === 'INTERESTED_PROFILE_CURSOR_MAP') {
+            if (Array.isArray(event.data.silhouetteIds)) {
+                event.data.silhouetteIds.forEach(id => silhouetteIds.add(id));
+            }
+            if (Array.isArray(entries) && entries.length > 0) {
+                updateInterestedProfileMap(entries);
+            }
         }
 
         // Capture profiles that liked the user from stacks data
@@ -184,6 +191,20 @@ async function loadInterestedProfileMap() {
     try {
         const result = await chrome.storage.local.get([STORAGE_KEYS.interestedProfileMap]);
         interestedProfileMap = result[STORAGE_KEYS.interestedProfileMap] || {};
+        
+        // Remove silhouette keys
+        let hasSilhouette = false;
+        for (const key of Object.keys(interestedProfileMap)) {
+            if (key.includes('silhouettes/')) {
+                delete interestedProfileMap[key];
+                hasSilhouette = true;
+            }
+        }
+        
+        if (hasSilhouette) {
+            chrome.storage.local.set({ [STORAGE_KEYS.interestedProfileMap]: interestedProfileMap }).catch(() => {});
+        }
+        
         interestedProfileMapLoaded = true;
     } catch (error) {
         console.error('[Cupid Enhanced] Failed to load interested profile map:', error.message);
@@ -199,12 +220,17 @@ function updateInterestedProfileMap(entries) {
     entries.forEach(entry => {
         const imageUrl = normalizeImageUrl(entry?.imageUrl);
         const profileId = entry?.profileId;
+        const viewedMe = entry?.viewedMe || true;
         if (!imageUrl || !profileId) return;
 
-        if (interestedProfileMap[imageUrl] !== profileId) {
-            interestedProfileMap[imageUrl] = profileId;
+        const existing = interestedProfileMap[imageUrl];
+        const existingProfileId = typeof existing === 'object' && existing !== null ? existing.profileId : existing;
+        const existingViewedMe = typeof existing === 'object' && existing !== null ? existing.viewedMe : false;
+
+        if (existingProfileId !== profileId || (!existingViewedMe && viewedMe)) {
+            interestedProfileMap[imageUrl] = { profileId, viewedMe: existingViewedMe || viewedMe };
             updated = true;
-            addedCount += 1;
+            if (existingProfileId !== profileId) addedCount += 1;
         }
     });
 
@@ -219,6 +245,8 @@ function updateInterestedProfileMap(entries) {
 
 function normalizeImageUrl(url) {
     if (!url || typeof url !== 'string') return null;
+    if (url.includes('silhouettes/')) return null;
+    if (url.includes('fuzzyphotos/')) return null;
     return url.split('?')[0];
 }
 
@@ -245,6 +273,7 @@ function base64DecodeCursor(value) {
 function getInterestedSortOptions() {
     return [
         'LIKES_VIEWS_GLOBAL',
+        'LIKES_ME',
         'LAST_LOGIN_DESCENDING',
         'DISTANCE_ASCENDING',
         'MATCH_SCORE_DESCENDING',
@@ -275,17 +304,31 @@ function getInterestedInYouCount() {
 }
 
 function getInterestedProfileIdCount() {
-    const ids = Object.values(interestedProfileMap).filter(Boolean);
+    const ids = Object.values(interestedProfileMap)
+        .map(v => typeof v === 'object' && v !== null ? v.profileId : v)
+        .filter(Boolean);
     return new Set(ids).size;
 }
 
 function getInterestedTargetCount() {
-    const domCount = getInterestedInYouCount();
-    if (typeof interestedTotalFromResponse === 'number' && typeof domCount === 'number') {
-        return Math.max(interestedTotalFromResponse, domCount);
+    if (trueInterestedTotal !== null) {
+        return trueInterestedTotal;
     }
-    if (typeof interestedTotalFromResponse === 'number') return interestedTotalFromResponse;
-    return domCount;
+
+    const domCount = getInterestedInYouCount();
+    let target = null;
+    if (typeof interestedTotalFromResponse === 'number' && typeof domCount === 'number') {
+        target = Math.max(interestedTotalFromResponse, domCount);
+    } else if (typeof interestedTotalFromResponse === 'number') {
+        target = interestedTotalFromResponse;
+    } else {
+        target = domCount;
+    }
+    
+    if (target !== null) {
+        return Math.max(0, target - silhouetteIds.size);
+    }
+    return null;
 }
 
 function getInterestedHeaderContainer() {
@@ -401,10 +444,10 @@ function extractInterestedImageUrl(item) {
     return null;
 }
 
-function extractInterestedProfileEntries(result) {
+function extractInterestedProfileEntries(result, sort, afterCursor) {
     const entries = [];
     if (result?.errors?.length) {
-        console.warn('[Cupid Enhanced] Interested fetch: response errors', result.errors);
+        console.warn('[Cupid Enhanced] Interested fetch: response errors', result.errors, { sort, afterCursor });
     }
 
     const likes = result?.data?.me?.likes;
@@ -416,13 +459,16 @@ function extractInterestedProfileEntries(result) {
         return entries;
     }
 
-    const firstImage = normalizeImageUrl(extractInterestedImageUrl(likesData[0]));
-    const lastImage = normalizeImageUrl(extractInterestedImageUrl(likesData[likesData.length - 1]));
+    const firstItem = likesData[0];
+    const lastItem = likesData[likesData.length - 1];
+    const firstImage = normalizeImageUrl(extractInterestedImageUrl(firstItem));
+    const lastImage = normalizeImageUrl(extractInterestedImageUrl(lastItem));
 
-    const afterCursor = likes?.pageInfo?.after;
-    const decodedAfter = base64DecodeCursor(afterCursor);
+    const likesAfterCursor = likes?.pageInfo?.after;
+    const decodedAfter = base64DecodeCursor(likesAfterCursor);
     if (decodedAfter && lastImage) {
-        entries.push({ profileId: decodedAfter, imageUrl: lastImage, cursor: afterCursor });
+        const viewedMe = lastItem?.targetViewedMe || false;
+        entries.push({ profileId: decodedAfter, imageUrl: lastImage, cursor: likesAfterCursor, viewedMe });
     }
 
     likesData.forEach(item => {
@@ -430,9 +476,15 @@ function extractInterestedProfileEntries(result) {
         const profileId = user?.id;
         if (!profileId) return;
 
+        const rawImageUrl = extractInterestedImageUrl(item);
+        if (rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.includes('silhouettes/')) {
+            silhouetteIds.add(profileId);
+        }
+
+        const viewedMe = item?.targetViewedMe || false;
         const imageUrls = collectUserImageUrls(user);
         imageUrls.forEach(imageUrl => {
-            entries.push({ imageUrl, profileId });
+            entries.push({ imageUrl, profileId, viewedMe });
         });
     });
 
@@ -444,7 +496,7 @@ async function fetchInterestedForCursor(sort, afterCursor, maxRetries = 3) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const response = await getIncomingLikes(sort, afterCursor || null);
-            const entries = extractInterestedProfileEntries(response);
+            const entries = extractInterestedProfileEntries(response, sort, afterCursor);
             const addedCount = entries.length ? updateInterestedProfileMap(entries) || 0 : 0;
             return { response, addedCount, error: null };
         } catch (error) {
@@ -492,6 +544,8 @@ async function pruneStaleProfiles(statusEl) {
     let pageCount = 0;
     const maxPages = 50;
 
+    let totalValidProfilesFound = 0;
+
     while (hasMore && pageCount < maxPages && !interestedFetchAborted) {
         pageCount++;
         if (statusEl) statusEl.textContent = `Validating profiles... (page ${pageCount})`;
@@ -507,11 +561,18 @@ async function pruneStaleProfiles(statusEl) {
 
             if (Array.isArray(likesData)) {
                 for (const item of likesData) {
+                    const rawImageUrl = extractInterestedImageUrl(item);
+                    if (rawImageUrl && typeof rawImageUrl === 'string' && (rawImageUrl.includes('silhouettes/') || rawImageUrl.includes('fuzzyphotos/'))) {
+                        const profileId = item?.user?.id;
+                        if (profileId) silhouetteIds.add(profileId);
+                    } else {
+                        totalValidProfilesFound++;
+                    }
                     collectAllImageUrlsFromItem(item).forEach(url => allImageUrls.add(url));
                 }
 
                 // Also add discovered entries to the map while we're at it
-                const entries = extractInterestedProfileEntries(response);
+                const entries = extractInterestedProfileEntries(response, 'LIKES_VIEWS_GLOBAL', afterCursor);
                 if (entries.length) updateInterestedProfileMap(entries);
             }
 
@@ -524,6 +585,25 @@ async function pruneStaleProfiles(statusEl) {
         } catch (error) {
             console.error('[Cupid Enhanced] Prune validation failed:', error.message);
             break;
+        }
+    }
+    
+    if (!hasMore && !interestedFetchAborted) {
+        trueInterestedTotal = totalValidProfilesFound;
+        console.log(`[Cupid Enhanced] Validation complete. True total valid profiles: ${trueInterestedTotal}`);
+        
+        // Update DOM Interested count
+        const tabsContainer = document.querySelector('[data-cy="likesPage.tabs"]');
+        const candidates = tabsContainer
+            ? tabsContainer.querySelectorAll('a, [role="tab"], button')
+            : document.querySelectorAll('a, [role="tab"], button');
+
+        for (const candidate of candidates) {
+            const text = candidate.textContent || '';
+            if (text.includes('Interested in You')) {
+                candidate.textContent = `Interested in You (${totalValidProfilesFound})`;
+                break;
+            }
         }
     }
 
@@ -622,8 +702,20 @@ async function handleInterestedFetchButtonClick(button) {
         let newCombosThisPass = 0;
         let reachedTarget = false;
 
-        const profileIds = [...new Set(Object.values(interestedProfileMap).filter(Boolean))];
-        const cursors = profileIds.map(base64EncodeCursor).filter(Boolean);
+        const profileData = Object.values(interestedProfileMap).filter(Boolean);
+        const profileMapById = {};
+        profileData.forEach(v => {
+            const pid = typeof v === 'object' && v !== null ? v.profileId : v;
+            const vme = typeof v === 'object' && v !== null ? v.viewedMe : false;
+            if (pid) {
+                if (profileMapById[pid]) {
+                    profileMapById[pid].viewedMe = profileMapById[pid].viewedMe || vme;
+                } else {
+                    profileMapById[pid] = { profileId: pid, viewedMe: vme };
+                }
+            }
+        });
+        const uniqueProfiles = Object.values(profileMapById);
 
         for (const sort of sortOptions) {
             if (interestedFetchAborted || reachedTarget) break;
@@ -651,8 +743,15 @@ async function handleInterestedFetchButtonClick(button) {
                 await sleep(50 + Math.floor(Math.random() * 100));
             }
 
-            for (const cursor of cursors) {
+            for (const profile of uniqueProfiles) {
                 if (interestedFetchAborted || reachedTarget) break;
+
+                const cursor = base64EncodeCursor(profile.profileId);
+                if (!cursor) continue;
+
+                if (sort === 'LIKES_ME' && profile.viewedMe) {
+                    continue; // Skip LIKES_ME sort if the profile viewed me
+                }
 
                 const comboKey = `${sort}:${cursor}`;
                 if (fetchedCombos.has(comboKey)) continue;
@@ -1146,7 +1245,8 @@ function decorateInterestedCards() {
         const match = style.match(BACKGROUND_IMAGE_REGEX);
         const imageUrl = normalizeImageUrl(match?.[1]);
 
-        const mappedProfileId = imageUrl ? interestedProfileMap[imageUrl] : null;
+        const mappedData = imageUrl ? interestedProfileMap[imageUrl] : null;
+        const mappedProfileId = typeof mappedData === 'object' && mappedData !== null ? mappedData.profileId : mappedData;
         const profileId = mappedProfileId || getProfileIdFromCardHref(card);
         if (!profileId) return;
 

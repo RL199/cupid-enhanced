@@ -118,6 +118,7 @@
 
     function normalizeImageUrl(url) {
         if (!url || typeof url !== 'string') return null;
+        if (url.includes('silhouettes/')) return null;
         return url.split('?')[0];
     }
 
@@ -169,20 +170,33 @@
             }
         }
 
+        let hasSilhouettes = false;
+        const silhouetteIds = [];
+
         likes.data.forEach(item => {
             const userId = item?.user?.id;
-            const imageUrl = normalizeImageUrl(extractInterestedImageUrl(item));
+            const rawImageUrl = extractInterestedImageUrl(item);
+            
+            if (userId && rawImageUrl && typeof rawImageUrl === 'string' && (rawImageUrl.includes('silhouettes/') || rawImageUrl.includes('fuzzyphotos/'))) {
+                hasSilhouettes = true;
+                silhouetteIds.push(userId);
+            }
+            
+            const imageUrl = normalizeImageUrl(rawImageUrl);
             if (userId && imageUrl) {
                 entries.push({ profileId: userId, imageUrl });
             }
         });
 
-        if (entries.length > 0 && (window.location.href.startsWith('https://www.okcupid.com/who-likes-you') || window.location.href.startsWith('https://okcupid.com/who-likes-you'))) {
-            window.postMessage({
-                type: 'INTERESTED_PROFILE_CURSOR_MAP',
-                operation: lastLikesRequestOperation,
-                entries
-            }, '*');
+        if (entries.length > 0 || hasSilhouettes) {
+            if (window.location.href.startsWith('https://www.okcupid.com/who-likes-you') || window.location.href.startsWith('https://okcupid.com/who-likes-you')) {
+                window.postMessage({
+                    type: 'INTERESTED_PROFILE_CURSOR_MAP',
+                    operation: lastLikesRequestOperation,
+                    entries,
+                    silhouetteIds
+                }, '*');
+            }
         }
     }
 
