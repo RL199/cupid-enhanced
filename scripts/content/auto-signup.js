@@ -119,7 +119,7 @@ async function handleRealNameStep() {
     console.log('[Cupid Enhanced] Signup: Handling REALNAME step');
     const nameInput = await waitForElement('input[data-cy="detailsEditor.realNameField"]');
 
-    setReactInputValue(nameInput, '---');
+    setReactInputValue(nameInput, ENV.NAME);
 
     await new Promise(r => setTimeout(r, 500));
     await clickNextWhenReady();
@@ -147,11 +147,11 @@ async function handleLocationStep() {
 
 async function handleGenderStep() {
     console.log('[Cupid Enhanced] Signup: Handling GENDER_BINARY step');
-    // Click the label containing "Woman" text
+    // Click the label containing ENV.GENDER text
     await waitForElement('input[name="gender"]');
     const labels = document.querySelectorAll('label[role="radio"]');
     for (const label of labels) {
-        if (label.querySelector('.oknf-radio-label')?.textContent.trim() === 'Woman') {
+        if (label.querySelector('.oknf-radio-label')?.textContent.trim() === ENV.GENDER) {
             label.click();
             break;
         }
@@ -163,11 +163,11 @@ async function handleGenderStep() {
 
 async function handleGenderPreferenceStep() {
     console.log('[Cupid Enhanced] Signup: Handling GENDER_PREFERENCE step');
-    // Click the label containing "Men" text
+    // Click the label containing ENV.ATTRACTED_GENDER text
     await waitForElement('input[name="gender-preference"]');
     const labels = document.querySelectorAll('label[role="checkbox"]');
     for (const label of labels) {
-        if (label.querySelector('.oknf-checkbox-label')?.textContent.trim() === 'Men') {
+        if (label.querySelector('.oknf-checkbox-label')?.textContent.trim() === ENV.ATTRACTED_GENDER) {
             label.click();
             break;
         }
@@ -183,11 +183,11 @@ async function handleBirthdateStep() {
     const dayInput = await waitForElement('input#onboarding-birthdate-DAY');
     const yearInput = await waitForElement('input#onboarding-birthdate-YEAR');
 
-    setReactInputValue(monthInput, '1');
+    setReactInputValue(monthInput, ENV.DATE_OF_BIRTH.month);
     await new Promise(r => setTimeout(r, 200));
-    setReactInputValue(dayInput, '1');
+    setReactInputValue(dayInput, ENV.DATE_OF_BIRTH.day);
     await new Promise(r => setTimeout(r, 200));
-    setReactInputValue(yearInput, '1999');
+    setReactInputValue(yearInput, ENV.DATE_OF_BIRTH.year);
 
     await new Promise(r => setTimeout(r, 500));
     await clickNextWhenReady();
@@ -197,7 +197,7 @@ async function handlePasswordStep() {
     console.log('[Cupid Enhanced] Signup: Handling PASSWORD step');
     const passwordInput = await waitForElement('input[data-cy="signup.passwordField"]');
 
-    setReactInputValue(passwordInput, '444-dante-444');
+    setReactInputValue(passwordInput, ENV.PASSWORD);
 
     await new Promise(r => setTimeout(r, 500));
     await clickNextWhenReady();
