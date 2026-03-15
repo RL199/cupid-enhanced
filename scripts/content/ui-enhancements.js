@@ -520,7 +520,7 @@ async function pruneStaleProfiles(statusEl) {
 
             if (!Array.isArray(likesData) || likesData.length === 0) break;
 
-            await sleep(50);
+            await sleep(50 + Math.floor(Math.random() * 100));
         } catch (error) {
             console.error('[Cupid Enhanced] Prune validation failed:', error.message);
             break;
@@ -648,7 +648,7 @@ async function handleInterestedFetchButtonClick(button) {
                     reachedTarget = true;
                     break;
                 }
-                await sleep(50);
+                await sleep(50 + Math.floor(Math.random() * 100));
             }
 
             for (const cursor of cursors) {
@@ -675,7 +675,7 @@ async function handleInterestedFetchButtonClick(button) {
                     reachedTarget = true;
                     break;
                 }
-                await sleep(50);
+                await sleep(50 + Math.floor(Math.random() * 100));
             }
             if (hasError) break;
         }
@@ -698,7 +698,7 @@ async function handleInterestedFetchButtonClick(button) {
             break;
         }
 
-        await sleep(100);
+        await sleep(100 + Math.floor(Math.random() * 100));
     }
 
     const newProfilesAdded = currentCount - initialCount;
